@@ -108,14 +108,87 @@ enum NotchTests {
         }
     }
 
+    private static func menuBarHeightContracts(expect: (Bool, String) -> Void) {
+        var measurements = NotchMenuBarMeasurements()
+        let screen = CGRect(x: -1440, y: -900, width: 1440, height: 900)
+        func read(_ id: UInt32, gap: CGFloat, frame: CGRect = CGRect(x: -1440, y: -900, width: 1440, height: 900),
+                  scale: CGFloat = 2, fallback: CGFloat = 22) -> CGFloat {
+            measurements.height(displayID: id, frame: frame, visibleTop: frame.maxY - gap,
+                                scale: scale, statusBarThickness: fallback)
+        }
+        for height: CGFloat in [16, 22, 24, 28, 30, 32, 33, 37, 64] {
+            expect(read(1, gap: height) == height, "the selected display's current visible bar supplies its height")
+            let geometry = NotchGeometry(screen: screen, safeAreaTop: 0, cameraWidth: 0, menuBarHeight: height)
+            expect(geometry.collapsed.height == height && geometry.compactMusicGeometry.compactActivitySize.height == height,
+                   "the simulated cutout and music strip stay within the measured bar")
+            for gap: CGFloat in [0, 1, -10, 15, 65, 600, .nan, .infinity] {
+                expect(read(1, gap: gap) == height, "hiding or an unavailable reading retains this display's measured height")
+            }
+        }
+        expect(read(1, gap: 24) == 24 && read(2, gap: 33) == 33,
+               "displays with different menu bars keep independent measurements")
+        for _ in 0..<3 {
+            expect(read(1, gap: 0) == 24 && read(2, gap: 0) == 33,
+                   "switching displays and changing other preferences while bars are hidden preserves both heights")
+        }
+        expect(read(3, gap: 0) == 22 && read(3, gap: 0, fallback: .nan) == 24,
+               "a display first seen with a hidden bar uses a safe native fallback, never another display's height")
+        expect(read(3, gap: 30) == 30 && read(3, gap: 0) == 30,
+               "revealing a previously unknown bar replaces the fallback and survives hiding again")
+        expect(read(1, gap: 0, frame: screen.offsetBy(dx: 1440, dy: 1800)) == 24,
+               "moving a display in the arrangement preserves its mode's measured height")
+        expect(read(1, gap: 0, scale: 1) == 22 && read(1, gap: 0, scale: 2) == 22,
+               "a scale change invalidates the old height even after changing back while the bar stays hidden")
+        _ = read(1, gap: 30)
+        expect(read(1, gap: 0, frame: CGRect(x: 0, y: 0, width: 1920, height: 1080)) == 22,
+               "a new screen resolution cannot inherit a previous mode's height")
+        measurements.retainDisplays([1, 3])
+        expect(read(2, gap: 0) == 22 && read(3, gap: 0) == 30,
+               "disconnecting a display drops its history without affecting the remaining display")
+        expect(read(0, gap: 37) == 37 && read(0, gap: 0) == 22,
+               "an unknown display identity can use its current reading but cannot share remembered measurements")
+        _ = read(1, gap: 30, scale: .nan)
+        expect(read(1, gap: 0) == 22, "an invalid display mode cannot seed remembered height")
+        var fresh = NotchMenuBarMeasurements()
+        for invalid: CGFloat in [0, -1, 15, 65, .nan, .infinity] {
+            expect(fresh.height(displayID: 1, frame: screen, visibleTop: screen.maxY,
+                                scale: 2, statusBarThickness: invalid) == 24,
+                   "invalid fallback heights never escape the safe range")
+        }
+    }
+
+    private static func musicLabelContracts(expect: (Bool, String) -> Void) {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        for height: CGFloat in [16, 22, 24, 28, 30, 33, 37, 64] {
+            for room: CGFloat? in [nil, 0, 43, 44, 56, 0, 56] {
+                let geometry = NotchGeometry(screen: screen, safeAreaTop: 0, cameraWidth: 0,
+                                             menuBarHeight: height, compactSideRoom: room).compactMusicGeometry
+                let contentLeft = geometry.compactActivityWingWidth + geometry.compactMusicLabelInset
+                let bottomCurveEnd = min(NotchLayout.shoulder, height * 0.28) + min(28, height / 2)
+                expect(contentLeft >= bottomCurveEnd + 4,
+                       "center text clears the entire curved silhouette even after the music wings disappear")
+                expect(geometry.compactActivityCameraGap - geometry.compactMusicLabelInset * 2 >= 50,
+                       "protecting the curves still leaves useful room for a truncated track name")
+                if geometry.compactActivityWingWidth >= 44 {
+                    expect(geometry.compactMusicLabelInset == 4,
+                           "available music wings preserve the original center text budget")
+                }
+            }
+        }
+    }
+
     static func run(expect: (Bool, String) -> Void) {
         simulatedMenuBoundsContracts(expect: expect)
         simulatedDisplayContracts(expect: expect)
         menuSpaceReuseContracts(expect: expect)
+        menuBarHeightContracts(expect: expect)
+        musicLabelContracts(expect: expect)
+        NotchHoverTests.run(expect: expect)
         NotchScreenEdgeClickTests.run(expect: expect)
         NotchPresentationRefreshContract.run(expect: expect)
         NotchScreenRefreshContract.run(expect: expect)
         NotchDestinationContract.run(expect: expect)
+        NotchMusicVisibilityTests.run(expect: expect)
         NotchCaptureKeyboardTests.run(expect: expect)
         NotchDownloadProgressTests.run(expect: expect)
         NotchSliderEditingTests.run(expect: expect)
@@ -229,10 +302,14 @@ enum NotchTests {
         expect(!NotchSupport.showsMusicActivity(isPlaying: true, in: defaults), "automatic music presentation can be disabled")
         defaults.set(NotchIdleContent.music.rawValue, forKey: DefaultsKey.notchIdleContent)
         expect(NotchSupport.visibleIdleContent(isPlaying: false, in: defaults) == .none
-               && NotchSupport.visibleIdleContent(isPlaying: true, in: defaults) == .music,
-               "explicit idle music has no empty wings while stopped and returns on playback even with automatic music disabled")
+               && NotchSupport.visibleIdleContent(isPlaying: true, in: defaults) == .none,
+               "idle music cannot bypass disabled automatic music presentation")
         expect(NotchSupport.idleContent(in: defaults) == .music,
-               "hiding stopped idle music preserves the choice that keeps its playback observer available")
+               "disabling automatic music preserves the user's saved resting choice")
+        defaults.set(true, forKey: DefaultsKey.notchShowPlayingMusic)
+        expect(NotchSupport.visibleIdleContent(isPlaying: false, in: defaults) == .none
+               && NotchSupport.visibleIdleContent(isPlaying: true, in: defaults) == .music,
+               "re-enabling automatic music restores the selected music only during playback")
         let idleGeometry = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1470, height: 956),
                                         safeAreaTop: 32, cameraWidth: 180, compactSideRoom: 100)
         expect(idleGeometry.restingSize(showsContent: NotchSupport.visibleIdleContent(isPlaying: false, in: defaults) != .none)
@@ -240,14 +317,31 @@ enum NotchTests {
                "stopped idle music shrinks to the physical camera without reserving empty side space")
         defaults.set(NotchIdleContent.none.rawValue, forKey: DefaultsKey.notchIdleContent)
         defaults.set(true, forKey: DefaultsKey.notchShowPlayingMusic)
+        expect(!NotchSupport.watchesMusicActivity(in: defaults)
+               && !NotchSupport.showsMusicActivity(isPlaying: true, in: defaults)
+               && NotchSupport.visibleIdleContent(isPlaying: true, in: defaults) == .none,
+               "Nothing at rest suppresses playing music and its background observer without disabling the island")
+        expect(NotchSupport.isEnabled(in: defaults) && NotchSupport.modules(in: defaults).contains(.music),
+               "Nothing at rest keeps the island and its on-demand music section available")
+        defaults.set(NotchIdleContent.music.rawValue, forKey: DefaultsKey.notchIdleContent)
         defaults.set("music", forKey: DefaultsKey.notchHiddenModules)
-        expect(!NotchSupport.watchesMusicActivity(in: defaults), "hidden music does not keep an activity observer")
+        expect(!NotchSupport.watchesMusicActivity(in: defaults)
+               && NotchSupport.visibleIdleContent(isPlaying: true, in: defaults) == .none,
+               "hidden music cannot keep an activity observer or resting content")
         defaults.set("", forKey: DefaultsKey.notchHiddenModules)
+        defaults.set(NotchIdleContent.none.rawValue, forKey: DefaultsKey.notchIdleContent)
         defaults.set(true, forKey: DefaultsKey.notchMusicActivity)
-        expect(NotchSupport.idleContent(in: defaults) == .none, "legacy music preference cannot populate a newly empty idle surface")
+        expect(NotchSupport.idleContent(in: defaults) == .none
+               && !NotchSupport.showsMusicActivity(isPlaying: true, in: defaults),
+               "legacy music preference cannot populate a newly empty idle surface")
         defaults.set(NotchIdleContent.battery.rawValue, forKey: DefaultsKey.notchIdleContent)
-        expect(NotchSupport.visibleIdleContent(isPlaying: false, in: defaults) == .battery,
-               "idle battery remains an independent explicit choice when music is stopped")
+        expect(NotchSupport.visibleIdleContent(isPlaying: false, in: defaults) == .battery
+               && NotchSupport.showsMusicActivity(isPlaying: true, in: defaults),
+               "battery at rest preserves automatic music while playing")
+        defaults.set(false, forKey: DefaultsKey.notchShowPlayingMusic)
+        expect(NotchSupport.visibleIdleContent(isPlaying: true, in: defaults) == .battery
+               && !NotchSupport.showsMusicActivity(isPlaying: true, in: defaults),
+               "disabling automatic music leaves the selected battery visible during playback")
         defaults.set(false, forKey: AppFeature.monitorPower.availabilityKey)
         expect(NotchSupport.idleContent(in: defaults) == .none, "unavailable battery cannot appear while idle")
         defaults.set(true, forKey: AppFeature.monitorPower.availabilityKey)

@@ -7,13 +7,16 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Summary
-Dynamic Island recreates a notebook's camera cutout on displays without one. Longer timers show hours and minutes throughout their controls, with better spacing and stable placement beside the camera.
+Dynamic Island responds sooner to the pointer, keeps music hidden when requested, fits each display's menu bar and shows track names on screens without a camera cutout. Longer timers show hours and minutes, with better spacing and stable placement beside the camera.
 
 ### Changed
+- Dynamic Island opens and closes sooner on hover, without extra pauses when moving between its controls.
 - Timers show hours and minutes in the duration ruler, countdown, compact view and focus settings.
 - Compact timers have more breathing room and stay beside the camera when menu space changes, including in full screen.
+- Dynamic Island follows each display's menu bar height and shows track names on screens without a camera cutout. Thanks to @ruvelro.
 
 ### Fixed
+- Dynamic Island hides playing music when At rest is set to Nothing or automatic music is disabled, while keeping controls available on demand.
 - Dynamic Island simulates a camera cutout within the menu bar on displays without one, preserving its shape and expansion. Thanks to @Yahddyyp.
 
 ## [3.4.0-beta.1] - 2026-09-15

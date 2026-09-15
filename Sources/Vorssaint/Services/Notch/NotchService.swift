@@ -86,6 +86,7 @@ final class NotchService: ObservableObject {
     private var menuSpaceTimer: Timer?
     private var menuSpaceReading = false
     private var menuSpaceGeneration = 0
+    private var menuBarMeasurements = NotchMenuBarMeasurements()
     private var screenRefreshWork: DispatchWorkItem?
     private let menuSpaceQueue = DispatchQueue(label: "com.vorssaint.notch-menu-space", qos: .utility)
 
@@ -381,19 +382,30 @@ final class NotchService: ObservableObject {
     func hover(_ entered: Bool) {
         guard running, !suspended else { return }
         let point = NSEvent.mouseLocation
+        let wasInside = inside
         inside = windowHost?.containsHover(point) == true
         hoverState.update(pointerInside: inside)
         captureHover?(entered)
+        guard !pinned, captureControls == nil, !heldDrag, !keepsWorkingSurface else {
+            hoverWork?.cancel(); hoverWork = nil
+            return
+        }
+        // Overlapping tracking areas can report the same presence repeatedly.
+        // Keep the first deadline until the pointer actually crosses the boundary.
+        if inside == wasInside, let hoverWork, !hoverWork.isCancelled { return }
         hoverWork?.cancel(); hoverWork = nil
-        guard !pinned, captureControls == nil, !heldDrag, !keepsWorkingSurface else { return }
         if inside {
             guard !hoverState.suppressed, notice == nil, !expanded, !peeking, !dragPlaceholder,
                   UserDefaults.standard.bool(forKey: DefaultsKey.notchOpenOnHover) else { return }
             if compactActivity != nil, compactActivityGeometry.compactActivityWingWidth > 0,
                !UserDefaults.standard.bool(forKey: DefaultsKey.notchHoverExpands) { return }
             let work = DispatchWorkItem { [weak self] in
-                guard let self, self.inside, !self.hoverState.suppressed, !self.expanded, !self.peeking,
-                      self.captureControls == nil,
+                guard let self else { return }
+                self.hoverWork = nil
+                guard self.running, !self.suspended, self.inside, !self.hoverState.suppressed,
+                      !self.expanded, !self.peeking, !self.pinned, !self.heldDrag, !self.keepsWorkingSurface,
+                      self.captureControls == nil, self.notice == nil, !self.dragPlaceholder,
+                      UserDefaults.standard.bool(forKey: DefaultsKey.notchOpenOnHover),
                       self.geometry.contains(NSEvent.mouseLocation, in: self.surfaceSize) else { return }
                 if UserDefaults.standard.bool(forKey: DefaultsKey.notchHoverExpands) {
                     self.open(self.compactActivity?.module, takeFocus: false)
@@ -403,17 +415,20 @@ final class NotchService: ObservableObject {
                 }
             }
             hoverWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10, execute: work)
         } else if NotchSupport.closesOnPointerExit(expanded: expanded, peeking: peeking, openedByHover: openedByHover) {
             let work = DispatchWorkItem { [weak self] in
-                guard let self, !self.inside, !self.pinned, !self.heldDrag, !self.keepsWorkingSurface,
+                guard let self else { return }
+                self.hoverWork = nil
+                guard self.running, !self.suspended, !self.inside, !self.pinned, !self.heldDrag, !self.keepsWorkingSurface,
+                      self.captureControls == nil,
                       self.windowHost?.containsHover(NSEvent.mouseLocation) != true,
                       !AssistiveKeyboard.ownsCocoaPoint(NSEvent.mouseLocation),
                       NotchSupport.closesOnPointerExit(expanded: self.expanded, peeking: self.peeking, openedByHover: self.openedByHover) else { return }
                 self.collapse()
             }
             hoverWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + (expanded ? NotchQuickAccessLayout.hoverExitDelay : 0.20), execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + (expanded ? NotchQuickAccessLayout.hoverExitDelay : 0.12), execute: work)
         }
     }
 
@@ -946,6 +961,7 @@ final class NotchService: ObservableObject {
 
     private func updateScreen() {
         let screens = NSScreen.screens
+        menuBarMeasurements.retainDisplays(screens.map(\.notchDisplayID))
         let builtIn = screens.map { CGDisplayIsBuiltin($0.notchDisplayID) != 0 }
         let index = NotchSupport.screenIndex(
             preference: NotchDisplay(rawValue: UserDefaults.standard.string(
@@ -961,7 +977,10 @@ final class NotchService: ObservableObject {
         var next = NotchGeometry(screen: screen.frame, safeAreaTop: screen.safeAreaInsets.top,
                                  cameraWidth: cameraWidth,
                                  layout: NotchSize(rawValue: UserDefaults.standard.string(forKey: DefaultsKey.notchSize) ?? "") ?? .compact,
-                                 menuBarHeight: NSStatusBar.system.thickness,
+                                 menuBarHeight: menuBarMeasurements.height(
+                                    displayID: screen.notchDisplayID, frame: screen.frame,
+                                    visibleTop: screen.visibleFrame.maxY, scale: screen.backingScaleFactor,
+                                    statusBarThickness: NSStatusBar.system.thickness),
                                  customWidth: UserDefaults.standard.double(forKey: DefaultsKey.notchCustomWidth),
                                  customHeight: UserDefaults.standard.double(forKey: DefaultsKey.notchCustomHeight))
         if next.hasSameMenuBar(as: geometry) { next.compactSideRoom = geometry.compactSideRoom }
@@ -1314,7 +1333,7 @@ final class NotchService: ObservableObject {
         }
         let musicWanted = modules.contains(.music) && ((expanded && (selected == .music || (selected == .controls && NotchSupport.controls().contains(.music)))
             && !showingAppPanel && !showingSections)
-            || NotchSupport.idleContent() == .music || NotchSupport.watchesMusicActivity())
+            || NotchSupport.watchesMusicActivity())
         if musicWanted { NotchMusicService.shared.start() } else { NotchMusicService.shared.stop() }
         let needs = expanded && selected == .system && selectedMetric == nil && modules.contains(.system) && !showingAppPanel && !showingSections
         var detailNeeds = expanded && !showingSections ? selectedMetric?.monitorNeeds ?? .none : .none
