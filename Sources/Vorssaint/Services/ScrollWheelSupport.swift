@@ -98,8 +98,9 @@ enum ScrollWheelSupport {
 /// one notch is what takes it out again. Shared by both wheel taps, so the
 /// glide and the raw wheel agree on what a notch is worth.
 extension ScrollWheelSupport {
-    /// Lines one notch scrolls. Three is what Windows and LinearMouse use, so
-    /// someone switching lands on a familiar pace.
+    /// Lines one notch scrolls. The default of three moves a few lines of
+    /// text per notch: a long page still goes by quickly, and the line being
+    /// read stays on screen.
     static let linesPerNotchRange = 1...10
     static let defaultLinesPerNotch = 3
 

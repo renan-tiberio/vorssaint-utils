@@ -19,7 +19,9 @@ import CoreGraphics
 /// macOS gives them. The list is separate from the smooth scrolling one on
 /// purpose, so excepting an app from the glide never leaves it scrolling
 /// backwards; when both features are on, the flip happens inside the smooth
-/// scrolling tap and honors this same list.
+/// scrolling tap and honors this same list. Linear scrolling keeps a list of
+/// its own, honored the same way in both taps, so a game or a 3D tool that
+/// counts the notches itself can be left out of the cap alone.
 final class ScrollInverter: ObservableObject {
     static let shared = ScrollInverter()
 
@@ -55,12 +57,7 @@ final class ScrollInverter: ObservableObject {
 
     /// Applies the persisted preference; safe to call repeatedly.
     func syncWithPreferences() {
-        let defaults = UserDefaults.standard
-        let wanted = (AppFeature.scrollInverter.isAvailable
-            && (defaults.bool(forKey: DefaultsKey.scrollInverterEnabled)
-                || defaults.bool(forKey: DefaultsKey.scrollInverterHorizontalEnabled)))
-            || (AppFeature.linearScroll.isAvailable
-                && defaults.bool(forKey: DefaultsKey.linearScrollEnabled))
+        let wanted = Self.invertingWanted || Self.linearScrollWanted
         if SessionActivitySupport.tapShouldRun(featureWanted: wanted,
                                                accessibilityGranted: Permissions.shared.accessibility,
                                                sessionIsActive: SessionActivity.shared.isActive) {
@@ -75,14 +72,36 @@ final class ScrollInverter: ObservableObject {
     /// leave a live tap behind.
     func suspend() { stop() }
 
+    /// Either feature keeps the tap alive on its own; each is read from its
+    /// own keys, which survive the hub uninstalling it.
+    private static var invertingWanted: Bool {
+        let defaults = UserDefaults.standard
+        return AppFeature.scrollInverter.isAvailable
+            && (defaults.bool(forKey: DefaultsKey.scrollInverterEnabled)
+                || defaults.bool(forKey: DefaultsKey.scrollInverterHorizontalEnabled))
+    }
+
+    private static var linearScrollWanted: Bool {
+        AppFeature.linearScroll.isAvailable
+            && UserDefaults.standard.bool(forKey: DefaultsKey.linearScrollEnabled)
+    }
+
+    /// Each list's source apps are tracked only while its feature is one the
+    /// tap is up for, so a list left behind by the other feature costs nothing.
+    private func setSourceTracking(_ running: Bool) {
+        let exceptions = MouseAppExceptions.shared
+        exceptions.setSourceTracking(running && Self.invertingWanted, for: .scrollDirection)
+        exceptions.setSourceTracking(running && Self.linearScrollWanted, for: .linearScroll)
+    }
+
     private func start() {
         if let port = tapStateLock.withLock({ tap }) {
             CGEvent.tapEnable(tap: port, enable: true)
-            MouseAppExceptions.shared.setSourceTracking(true, for: .scrollDirection)
+            setSourceTracking(true)
             isRunning = true
             return
         }
-        MouseAppExceptions.shared.setSourceTracking(true, for: .scrollDirection)
+        setSourceTracking(true)
         guard let tap = CGEvent.tapCreate(
             tap: .cghidEventTap,
             place: .tailAppendEventTap,
@@ -95,7 +114,7 @@ final class ScrollInverter: ObservableObject {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            MouseAppExceptions.shared.setSourceTracking(false, for: .scrollDirection)
+            setSourceTracking(false)
             isRunning = false
             // A create that fails during the session handoff gets one more look once the switch settles.
             guard !tapCreationRetryUsed else { return }
@@ -129,7 +148,7 @@ final class ScrollInverter: ObservableObject {
         tapCreationRetryWork?.cancel()
         tapCreationRetryWork = nil
         tapCreationRetryUsed = false
-        MouseAppExceptions.shared.setSourceTracking(false, for: .scrollDirection)
+        setSourceTracking(false)
         let (port, source) = tapStateLock.withLock { () -> (CFMachPort?, CFRunLoopSource?) in
             let current = (tap, runLoopSource)
             tap = nil
@@ -204,8 +223,13 @@ final class ScrollInverter: ObservableObject {
         var horizontal = rawHorizontal
         let defaults = UserDefaults.standard
 
-        if AppFeature.linearScroll.isAvailable,
-           defaults.bool(forKey: DefaultsKey.linearScrollEnabled) {
+        let linearApplies = AppFeature.linearScroll.isAvailable
+            && defaults.bool(forKey: DefaultsKey.linearScrollEnabled)
+            && !MouseAppExceptions.shared.excludesPointerTarget(
+                .linearScroll,
+                at: event.location,
+                sourceProcessID: sourceProcessID)
+        if linearApplies {
             let linesPerNotch = ScrollWheelSupport.sanitizedLinesPerNotch(
                 defaults.integer(forKey: DefaultsKey.linearScrollLines))
             let linearVertical = ScrollWheelSupport.linearDelta(
@@ -246,11 +270,12 @@ final class ScrollInverter: ObservableObject {
             )
         }
 
-        // A discrete event only ever has its line written; the rest follows.
-        let verticalChanged = traits.isContinuous
-            ? vertical != rawVertical : vertical.line != rawVertical.line
-        let horizontalChanged = traits.isContinuous
-            ? horizontal != rawHorizontal : horizontal.line != rawHorizontal.line
+        // Linear scrolling writes back every axis that moves, even when the
+        // capped line matches the one already there: a discrete event's line
+        // is what the system rederives the other fields from, so writing it
+        // is what takes a high-resolution wheel's leftover fraction out.
+        let verticalChanged = linearApplies && rawVertical.hasMovement
+        let horizontalChanged = linearApplies && rawHorizontal.hasMovement
         if plan.vertical || verticalChanged {
             let out = plan.vertical ? vertical.negated : vertical
             event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: out.line)

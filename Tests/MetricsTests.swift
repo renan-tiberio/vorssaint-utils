@@ -1471,6 +1471,15 @@ struct MetricsTests {
                    $0.contains("DefaultsKey.linearScrollEnabled") && $0.contains("ScrollWheelSupport.linear")
                },
                "both wheel taps consult linear scrolling, so the glide and the raw wheel agree")
+        let compactWheelTapSources = wheelTapSources.map { $0.filter { !$0.isWhitespace } }
+        expect(compactWheelTapSources.allSatisfy { $0.contains("excludesPointerTarget(.linearScroll,") },
+               "both wheel taps leave the apps on linear scrolling's own list alone")
+        expect(compactWheelTapSources[0].contains("letverticalChanged=linearApplies&&rawVertical.hasMovement")
+                && compactWheelTapSources[0].contains("lethorizontalChanged=linearApplies&&rawHorizontal.hasMovement"),
+               "linear scrolling writes back every axis that moves, so a high-resolution fraction cannot slip through")
+        expect(compactWheelTapSources[1].contains(
+                "letinvertHere=AppFeature.scrollInverter.isAvailable&&ScrollInverter.shared.isRunning"),
+               "the glide flips only while the inverter is installed, not merely while linear scrolling keeps its tap up")
         expect(((try? String(contentsOfFile: "Sources/Vorssaint/App/FeatureRuntime.swift",
                              encoding: .utf8)) ?? "")
                 .contains(".linearScroll: { ScrollInverter.shared.syncWithPreferences() }"),
@@ -21086,6 +21095,7 @@ struct MetricsTests {
         expect(Set(MouseExceptionScope.allCases.map(\.defaultsKey)).count == MouseExceptionScope.allCases.count,
                "each feature keeps its own list, never a key shared with another")
         expect(MouseExceptionScope.smoothScroll.feature == .smoothScroll
+                && MouseExceptionScope.linearScroll.feature == .linearScroll
                 && MouseExceptionScope.scrollDirection.feature == .scrollInverter
                 && MouseExceptionScope.focusFollowsMouse.feature == .focusFollowsMouse
                 && MouseExceptionScope.navigation.feature == .mouseNavigation
@@ -21788,6 +21798,10 @@ struct MetricsTests {
         expect(backupKeys.contains(DefaultsKey.mouseAccelerationDisabled)
                 && backupKeys.contains(DefaultsKey.panelControlMouseAcceleration),
                "mouse acceleration preferences travel with the settings backup")
+        expect(backupKeys.contains(DefaultsKey.linearScrollEnabled)
+                && backupKeys.contains(DefaultsKey.linearScrollLines)
+                && backupKeys.contains(DefaultsKey.panelControlLinearScroll),
+               "linear scrolling preferences travel with the settings backup")
         expect(MouseExceptionScope.allCases.allSatisfy { backupKeys.contains($0.defaultsKey) },
                "the apps each mouse feature leaves alone travel with the settings backup")
         expect(backupKeys.contains(DefaultsKey.clipboardHistoryIgnoredApps),

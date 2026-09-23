@@ -265,17 +265,25 @@ final class SmoothScrollService: ObservableObject {
         // applied here; the glide is marked so the inverter leaves it alone.
         // The flip is the inverter's, so it follows the inverter's own
         // exception list: an app excepted there must keep the system's
-        // direction even while its wheel glides.
-        let invertHere = ScrollInverter.shared.isRunning
+        // direction even while its wheel glides. Linear scrolling can keep
+        // the inverter's tap running with the inverter itself uninstalled
+        // and its switches left on, so the tap running is not enough.
+        let invertHere = AppFeature.scrollInverter.isAvailable
+            && ScrollInverter.shared.isRunning
             && !exceptions.excludesPointerTarget(
                 .scrollDirection,
                 at: event.location,
                 sourceProcessID: sourceProcessID)
         let defaults = UserDefaults.standard
         // Linear scrolling is applied here for the same reason the flip is:
-        // this tap swallows the tick before the wheel tap can see it.
+        // this tap swallows the tick before the wheel tap can see it. The cap
+        // follows linear scrolling's own exception list the same way.
         let linearLinesPerNotch: Int? = AppFeature.linearScroll.isAvailable
             && defaults.bool(forKey: DefaultsKey.linearScrollEnabled)
+            && !exceptions.excludesPointerTarget(
+                .linearScroll,
+                at: event.location,
+                sourceProcessID: sourceProcessID)
             ? ScrollWheelSupport.sanitizedLinesPerNotch(
                 defaults.integer(forKey: DefaultsKey.linearScrollLines))
             : nil

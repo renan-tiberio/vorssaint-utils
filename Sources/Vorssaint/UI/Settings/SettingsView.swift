@@ -1060,6 +1060,7 @@ struct MouseSettings: View {
                                 .foregroundStyle(.secondary)
                                 .frame(width: 34, alignment: .trailing)
                         }
+                        MouseExceptionsList(scope: .linearScroll)
                     }
                 }
                 .settingsSectionAnchor(.linearScroll)
