@@ -340,7 +340,7 @@ struct SwitcherView: View {
                         }
                         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { _ in
                             DispatchQueue.main.async {
-                                revealSelection(in: proxy, animated: true)
+                                revealSelection(in: proxy, animated: false)
                             }
                         }
                     }
@@ -431,7 +431,7 @@ struct SwitcherView: View {
                     }
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { _ in
                         DispatchQueue.main.async {
-                            revealSelection(in: proxy, animated: true)
+                            revealSelection(in: proxy, animated: false)
                         }
                     }
                 }
@@ -480,6 +480,7 @@ struct SwitcherView: View {
 
     private var appIconRow: some View {
         let groups = appGroups
+        let dividerPIDs = SwitcherSupport.windowlessAppDividerPIDs(items: switcher.windows)
         return overflowingIconRow(
             itemCount: groups.count,
             tileWidth: SwitcherIconRowLayout.appTileWidth
@@ -495,6 +496,17 @@ struct SwitcherView: View {
                                      switcher.select(index: index)
                                      switcher.commitSession()
                                  })
+                    .overlay(alignment: .leading) {
+                        if dividerPIDs.contains(group.pid) {
+                            Rectangle()
+                                .fill(Color(nsColor: .separatorColor))
+                                .frame(width: 1, height: SwitcherIconRowLayout.iconSize)
+                                // Occupy the existing gap so scrolling and hit targets stay aligned.
+                                .offset(x: -(SwitcherIconRowLayout.spacing + 1) / 2)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
                     .onHover { hovering in
                         if hovering {
                             switcher.hoverSelectIconRow(index: index)
@@ -565,11 +577,13 @@ struct SwitcherView: View {
     /// a window can replace the selected item at the same index. Reveal after
     /// the viewport's actual geometry changes, allowing its native scroll view
     /// to finish resizing before the queued reveal reads the current selection.
+    /// Resize corrections are unanimated. SwiftUI before macOS 26 can also drop
+    /// animated reveals during rapid navigation, so use immediate scrolling there.
     private func revealSelection(in proxy: ScrollViewProxy, animated: Bool) {
         let index = switcher.selectedIndex
         guard switcher.windows.indices.contains(index) else { return }
         let id = switcher.windows[index].id
-        guard animated else {
+        guard animated, #available(macOS 26, *) else {
             proxy.scrollTo(id, anchor: .center)
             return
         }

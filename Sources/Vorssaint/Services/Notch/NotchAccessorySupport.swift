@@ -12,13 +12,21 @@ enum NotchAccessorySupport {
             && defaults.bool(forKey: DefaultsKey.notchAccessoriesEnabled)
     }
 
-    static func symbol(for kind: PeripheralBatteryKind) -> String {
+    static func symbol(for kind: PeripheralBatteryKind, name: String) -> String {
+        let kind = kind == .device
+            ? PeripheralBatterySupport.kind(product: name, primaryUsagePage: nil, primaryUsage: nil, usagePairs: [])
+            : kind
         switch kind {
-        case .audio: return "headphones"
+        case .audio:
+            let model = name.lowercased()
+            if model.contains("airpods max") { return "airpodsmax" }
+            if model.contains("airpods pro") { return "airpodspro" }
+            if model.contains("airpods") { return "airpods" }
+            return "headphones"
         case .keyboard: return "keyboard"
         case .mouse: return "computermouse"
-        case .trackpad: return "trackpad"
-        case .device: return "battery.25percent"
+        case .trackpad: return "rectangle.and.hand.point.up.left"
+        case .device: return "dot.radiowaves.left.and.right"
         }
     }
 

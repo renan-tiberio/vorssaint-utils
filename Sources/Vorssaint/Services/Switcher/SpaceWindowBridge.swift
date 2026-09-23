@@ -36,6 +36,23 @@ enum SpaceWindowBridge {
         return unsafeBitCast(symbol, to: GetWindowTagsFunction.self)
     }()
 
+    private typealias WindowIsOrderedInFunction =
+        @convention(c) (ConnectionID, CGWindowID, UnsafeMutablePointer<UInt8>) -> CGError
+    private static let windowIsOrderedIn: WindowIsOrderedInFunction? = {
+        guard let symbol = symbol("CGSWindowIsOrderedIn") else { return nil }
+        return unsafeBitCast(symbol, to: WindowIsOrderedInFunction.self)
+    }()
+
+    /// Unlike on-screen visibility, ordering survives a move to another desktop.
+    /// A dismissed surface can retain its desktop assignment without being ordered.
+    /// Keep an unavailable query distinct from an explicit ordered-out answer.
+    static func isWindowOrderedIn(_ windowID: CGWindowID) -> Bool? {
+        guard connection != 0, let windowIsOrderedIn else { return nil }
+        var ordered: UInt8 = 0
+        guard windowIsOrderedIn(connection, windowID, &ordered) == .success else { return nil }
+        return ordered != 0
+    }
+
     // MARK: - Space membership
 
     private typealias CopySpacesFunction =
@@ -80,6 +97,15 @@ enum SpaceWindowBridge {
             let spaces: [UInt64]
             let fullscreenSpaces: Set<UInt64>
             let currentSpace: UInt64?
+        }
+
+        /// With separate Spaces, only the island's display controls visibility.
+        /// A shared Space applies to every display even if its UUID is absent.
+        func isFullscreen(on displayID: CGDirectDisplayID, separateSpaces: Bool) -> Bool {
+            let candidates = separateSpaces ? displays.filter { $0.displayID == displayID } : displays
+            return candidates.contains { display in
+                display.currentSpace.map { display.fullscreenSpaces.contains($0) } == true
+            }
         }
 
         /// Displays in order.
@@ -231,25 +257,32 @@ enum SpaceWindowBridge {
     /// macOS also travels to the window's Space; current macOS ignores the
     /// Space part, which is why SpaceHop verifies the outcome and escalates.
     /// The follow-up record pair makes the window key without clicking any of
-    /// its content (the synthetic click points just outside the frame).
-    static func frontWindow(_ windowID: CGWindowID, ownerPID: pid_t) {
-        guard let setFrontProcess, let processForPID else { return }
+    /// its content: the record carries no usable location, so nothing in the
+    /// window is hit. A point just outside the frame lands on the invisible
+    /// resize border instead, and the repeated focus pass then finished a
+    /// resize that dragged the window's top-left corner to the screen's own.
+    /// Returns false when the window server did not take the request, so the
+    /// caller can fall back to app-level activation.
+    @discardableResult
+    static func frontWindow(_ windowID: CGWindowID, ownerPID: pid_t) -> Bool {
+        guard let setFrontProcess, let processForPID, let postEventRecord else { return false }
         var psn = ProcessSerialNumber()
-        guard processForPID(ownerPID, &psn) == noErr else { return }
+        guard processForPID(ownerPID, &psn) == noErr else { return false }
         let userGenerated: UInt32 = 0x200
-        guard setFrontProcess(&psn, windowID, userGenerated) == .success else { return }
-        guard let postEventRecord else { return }
+        guard setFrontProcess(&psn, windowID, userGenerated) == .success else { return false }
         var targetID = windowID
-        var clickPoint = CGPoint(x: -1, y: -1)
         var record = [UInt8](repeating: 0, count: 0x100)
         record[0x04] = 0xf8 // declared record length
         record[0x3a] = 0x10
         withUnsafeBytes(of: &targetID) { record.replaceSubrange(0x3c..<0x3c + $0.count, with: $0) }
-        withUnsafeBytes(of: &clickPoint) { record.replaceSubrange(0x20..<0x20 + $0.count, with: $0) }
+        // Location bytes: all ones reads as no point at all (NaN), so the
+        // click cannot hit content, a title bar or the resize border.
+        for offset in 0x20..<0x30 { record[offset] = 0xff }
         record[0x08] = 0x01 // left mouse down…
-        _ = postEventRecord(&psn, &record)
+        let down = postEventRecord(&psn, &record)
         record[0x08] = 0x02 // …then up: the pair makes the window key
-        _ = postEventRecord(&psn, &record)
+        let up = postEventRecord(&psn, &record)
+        return down == .success && up == .success
     }
 
     // MARK: - The user's "move a space" shortcut
