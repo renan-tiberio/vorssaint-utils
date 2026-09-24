@@ -11,6 +11,7 @@ enum FeatureStrings {
         case .tr: return .tr
         case .ru: return .ru
         case .es: return .es
+        case .sk: return .sk
         case .de: return .de
         case .fr: return .fr
         case .it: return .it
@@ -19,6 +20,7 @@ enum FeatureStrings {
         case .zhHans: return .zhHans
         case .zhTW: return .zhTW
         case .zhHK: return .zhHK
+        case .uk: return .uk
         }
     }
 
@@ -29,6 +31,7 @@ enum FeatureStrings {
         case .tr: return .tr
         case .ru: return .ru
         case .es: return .es
+        case .sk: return .sk
         case .de: return .de
         case .fr: return .fr
         case .it: return .it
@@ -37,6 +40,7 @@ enum FeatureStrings {
         case .zhHans: return .zhHans
         case .zhTW: return .zhTW
         case .zhHK: return .zhHK
+        case .uk: return .uk
         }
     }
 
@@ -47,6 +51,7 @@ enum FeatureStrings {
         case .tr: return .tr
         case .ru: return .ru
         case .es: return .es
+        case .sk: return .sk
         case .de: return .de
         case .fr: return .fr
         case .it: return .it
@@ -55,6 +60,7 @@ enum FeatureStrings {
         case .zhHans: return .zhHans
         case .zhTW: return .zhTW
         case .zhHK: return .zhHK
+        case .uk: return .uk
         }
     }
 
@@ -65,6 +71,7 @@ enum FeatureStrings {
         case .tr: return .tr
         case .ru: return .ru
         case .es: return .es
+        case .sk: return .sk
         case .de: return .de
         case .fr: return .fr
         case .it: return .it
@@ -73,6 +80,7 @@ enum FeatureStrings {
         case .zhHans: return .zhHans
         case .zhTW: return .zhTW
         case .zhHK: return .zhHK
+        case .uk: return .uk
         }
     }
 
@@ -83,6 +91,7 @@ enum FeatureStrings {
         case .tr: return .tr
         case .ru: return .ru
         case .es: return .es
+        case .sk: return .sk
         case .de: return .de
         case .fr: return .fr
         case .it: return .it
@@ -91,6 +100,7 @@ enum FeatureStrings {
         case .zhHans: return .zhHans
         case .zhTW: return .zhTW
         case .zhHK: return .zhHK
+        case .uk: return .uk
         }
     }
 
@@ -117,6 +127,7 @@ struct MixerFeatureStrings {
     static let tr = MixerFeatureStrings(hideInactiveApps: "Etkin olmayan uygulamaları gizle", pin: "En üste sabitle", unpin: "Sabitlemeyi kaldır", moveUp: "Yukarı taşı", moveDown: "Aşağı taşı", pinFirst: "Başa sabitle", moveLeft: "Sola taşı", moveRight: "Sağa taşı", arrange: "Sıralamak için Command tuşunu basılı tutup sürükleyin", actions: "Eylemler")
     static let ru = MixerFeatureStrings(hideInactiveApps: "Скрывать неактивные приложения", pin: "Закрепить сверху", unpin: "Открепить", moveUp: "Переместить вверх", moveDown: "Переместить вниз", pinFirst: "Закрепить в начале", moveLeft: "Переместить влево", moveRight: "Переместить вправо", arrange: "Удерживайте Command и перетащите для изменения порядка", actions: "Действия")
     static let es = MixerFeatureStrings(hideInactiveApps: "Ocultar apps inactivas", pin: "Fijar arriba", unpin: "Desfijar", moveUp: "Mover hacia arriba", moveDown: "Mover hacia abajo", pinFirst: "Fijar al principio", moveLeft: "Mover a la izquierda", moveRight: "Mover a la derecha", arrange: "Mantén pulsado Command y arrastra para reordenar", actions: "Acciones")
+    static let sk = MixerFeatureStrings(hideInactiveApps: "Skryť neaktívne aplikácie", pin: "Pripnúť navrch", unpin: "Odopnúť", moveUp: "Presunúť nahor", moveDown: "Presunúť nadol", pinFirst: "Pripnúť dopredu", moveLeft: "Presunúť doľava", moveRight: "Presunúť doprava", arrange: "Podržte Command a presuňte myšou pre zmenu poradia", actions: "Akcie")
     static let de = MixerFeatureStrings(hideInactiveApps: "Inaktive Apps ausblenden", pin: "Oben anheften", unpin: "Loslösen", moveUp: "Nach oben bewegen", moveDown: "Nach unten bewegen", pinFirst: "Vorne anheften", moveLeft: "Nach links bewegen", moveRight: "Nach rechts bewegen", arrange: "Zum Anordnen Command gedrückt halten und ziehen", actions: "Aktionen")
     static let fr = MixerFeatureStrings(hideInactiveApps: "Masquer les apps inactives", pin: "Épingler en haut", unpin: "Désépingler", moveUp: "Déplacer vers le haut", moveDown: "Déplacer vers le bas", pinFirst: "Épingler au début", moveLeft: "Déplacer vers la gauche", moveRight: "Déplacer vers la droite", arrange: "Maintenez Command et faites glisser pour réorganiser", actions: "Actions")
     static let it = MixerFeatureStrings(hideInactiveApps: "Nascondi le app inattive", pin: "Fissa in alto", unpin: "Rimuovi fissaggio", moveUp: "Sposta su", moveDown: "Sposta giù", pinFirst: "Fissa all’inizio", moveLeft: "Sposta a sinistra", moveRight: "Sposta a destra", arrange: "Tieni premuto Command e trascina per riordinare", actions: "Azioni")
@@ -380,6 +391,15 @@ struct SettingsCategoryStrings {
         utilities: "Utilidades",
         app: "App",
         appManagement: "Gestión de apps"
+    )
+
+    static let sk = SettingsCategoryStrings(
+        essentials: "Základné",
+        windowsControls: "Okná a ovládanie",
+        files: "Súbory",
+        utilities: "Pomôcky",
+        app: "Apka",
+        appManagement: "Správa aplikácií"
     )
 
     static let de = SettingsCategoryStrings(
@@ -809,6 +829,67 @@ struct ClipboardFeatureStrings {
         menuBarPreviewCaption: "Muestra una vista previa abreviada de tu última copia junto al icono. Haz clic para abrir el historial.",
         menuBarPreviewLength: "Longitud de la vista previa",
         menuBarPreviewLengthSuffix: "caracteres"
+    )
+
+    static let sk = ClipboardFeatureStrings(
+        title: "Schránka",
+        enable: "Ukladať históriu schránky",
+        caption: "Ukladá skopírovaný text, aby ste ho mohli neskôr znova použiť. Všetko zostáva lokálne a môžete to kedykoľvek vymazať.",
+        localNote: "Všetko zostáva len na tomto Macu. Príliš veľké položky sa ignorujú.",
+        skipSensitive: "Preskočiť text, ktorý vyzerá citlivo",
+        skipSensitiveCaption: "Zabráni uloženiu krátkych reťazcov bez medzier, ktoré vyzerajú ako heslá, tokeny alebo kľúče.",
+        limit: "Limit",
+        limitUnlimited: "Bez obmedzenia",
+        showInPanel: "Zobraziť v paneli",
+        shortcut: "Skratka histórie",
+        shortcutCaption: "Otvorí rýchle okno s vyhľadávaním, pripnutými položkami a skratkami ⌘1 až ⌘9 na prilepenie do predchádzajúcej aplikácie.",
+        shortcutHint: "Kliknutím na riadok ho prilepíte do predchádzajúcej aplikácie. ⌘-klik vyberie viac položiek, ⌘C skopíruje bez prilepenia.",
+        clickRowShortcut: "Kliknutie na riadok",
+        commandClickShortcut: "⌘ klik",
+        pinned: "Pripnuté",
+        recent: "Nedávne",
+        pin: "Pripnúť",
+        unpin: "Odopnúť",
+        clearRecent: "Vymazať nedávne",
+        clearAll: "Vymazať nepripnuté",
+        empty: "Žiadny uložený text",
+        disabled: "Históriu zapnite, aby sa začal ukladať skopírovaný text.",
+        search: "Hľadať v skopírovanom texte",
+        copy: "Kopírovať",
+        copied: "Skopírované",
+        delete: "Vymazať položku",
+        selectMultiple: "Pridať do kôpky",
+        unselectMultiple: "Odobrať z kôpky",
+        selectShortcutAction: "Vybrať",
+        pasteSelectedFormat: "Prilepiť %d",
+        copySelectedFormat: "Kopírovať %d",
+        clearSelection: "Zrušiť výber",
+        moveUp: "Presunúť nahor",
+        moveDown: "Presunúť nadol",
+        noResults: "Žiadne výsledky",
+        newestFirst: "Najnovšie ako prvé",
+        active: "Ukladá sa nový text",
+        includeImagesFiles: "Ukladať aj skopírované obrázky a súbory",
+        includeImagesFilesCaption: "Obrázky sa pridajú do histórie a súbory sa zapamätajú ako odkazy na ich umiestnenie. Pripínajte a prilepujte ich ako hocijaký text.",
+        imageEntryLabel: "Obrázok",
+        fileCountFormat: "Súbory: %d",
+        pasteImageAsFile: "Prilepiť skopírované obrázky ako súbory",
+        pasteImageAsFileCaption: "Keď je aktívny Finder, ⌘V uloží skopírovaný obrázok ako PNG do aktuálneho priečinka.",
+        previewLabel: "Náhľad",
+        edit: "Upraviť",
+        cancel: "Zrušiť",
+        save: "Uložiť",
+        autoClearEnable: "Automaticky vymazať schránku s oneskorením",
+        autoClearSecondsSuffix: "sekúnd",
+        autoClearOnSleep: "Vymazať schránku pri uspaní Macu",
+        autoClearOnDisplaySleep: "Vymazať schránku pri vypnutí displeja",
+        autoClearOnScreenLock: "Vymazať schránku pri uzamknutí obrazovky",
+        autoClearCaption: "Vymaže iba systémovú schránku. Už uložené položky zostanú v histórii.",
+        deleteSelectedFormat: "Vymazať %d",
+        menuBarPreview: "Zobraziť poslednú kópiu v lište",
+        menuBarPreviewCaption: "Zobrazí skrátený náhľad poslednej kópie vedľa ikony. Kliknutím naň otvoríte históriu.",
+        menuBarPreviewLength: "Dĺžka náhľadu",
+        menuBarPreviewLengthSuffix: "znakov"
     )
 
     static let de = ClipboardFeatureStrings(
@@ -1772,6 +1853,95 @@ struct WindowLayoutFeatureStrings {
         gapExtraLarge: "Extragrande"
     )
 
+    static let sk = WindowLayoutFeatureStrings(
+        title: "Rozloženie okien",
+        caption: "Usporiadajte okná do oblastí obrazovky alebo ich presúvajte a meňte im veľkosť trackpadom či myšou.",
+        showInPanel: "Zobraziť v paneli",
+        gestureSection: "Ťahanie okien",
+        gestureEnable: "Presúvať a meniť veľkosť ťahaním",
+        gestureCaption: "Na trackpade alebo myši podržte zobrazené klávesy a ťahajte kdekoľvek vnútri okna.",
+        gestureModifiers: "Klávesy na presun",
+        gestureMove: "Ťahaním presuniete",
+        gestureResize: "Pridajte Shift a ťahaním zmeníte veľkosť",
+        gestureResizeHint: "Počiatočný bod určí najbližší okraj alebo roh. Na myši veľkosť zmení aj ťahanie pravým tlačidlom.",
+        gestureRaiseWindow: "Presunúť ťahané okno dopredu",
+        shortcuts: "Skratky",
+        shortcutsCaption: "Pomocou globálnych skratiek usporiadajte aktívne okno bez otvorenia panela.",
+        permissionCaption: "Prístupnosť sa používa iba na presúvanie a zmenu veľkosti okien.",
+        noWindow: "Nenašlo sa žiadne aktívne okno.",
+        missingPermission: "Na presúvanie okien povoľte Prístupnosť.",
+        failed: "Toto okno sa nepodarilo presunúť.",
+        done: "Okno usporiadané.",
+        restored: "Okno obnovené.",
+        noRestore: "Žiadne predchádzajúce rozloženie na obnovenie.",
+        target: "Aktívne okno",
+        halves: "Polovice",
+        thirds: "Tretiny",
+        quarterRows: "Štvrtinové riadky",
+        quarterColumns: "Štvrtinové stĺpce",
+        sixths: "Šestiny",
+        corners: "Rohy",
+        other: "Akcie",
+        leftHalf: "Vľavo",
+        rightHalf: "Vpravo",
+        topHalf: "Hore",
+        bottomHalf: "Dole",
+        centerHalf: "Stredná polovica",
+        leftThird: "Ľavá 1/3",
+        centerThird: "Stredná 1/3",
+        rightThird: "Pravá 1/3",
+        leftTwoThirds: "Ľavé 2/3",
+        rightTwoThirds: "Pravé 2/3",
+        centerTwoThirds: "Stredné 2/3",
+        topThird: "Horná 1/3",
+        middleThird: "Stredná 1/3",
+        bottomThird: "Dolná 1/3",
+        topTwoThirds: "Horné 2/3",
+        bottomTwoThirds: "Dolné 2/3",
+        topQuarter: "Horná 1/4",
+        upperMiddleQuarter: "Horná stredná 1/4",
+        lowerMiddleQuarter: "Dolná stredná 1/4",
+        bottomQuarter: "Dolná 1/4",
+        leftQuarter: "Ľavá 1/4",
+        leftMiddleQuarter: "Ľavá stredná 1/4",
+        rightMiddleQuarter: "Pravá stredná 1/4",
+        rightQuarter: "Pravá 1/4",
+        topLeftSixth: "Horná ľavá 1/6",
+        topCenterSixth: "Horná stredná 1/6",
+        topRightSixth: "Horná pravá 1/6",
+        bottomLeftSixth: "Dolná ľavá 1/6",
+        bottomCenterSixth: "Dolná stredná 1/6",
+        bottomRightSixth: "Dolná pravá 1/6",
+        topLeft: "Vľavo hore",
+        topRight: "Vpravo hore",
+        bottomLeft: "Vľavo dole",
+        bottomRight: "Vpravo dole",
+        maximize: "Maximalizovať",
+        center: "Vycentrovať",
+        nextDisplay: "Ďalší displej",
+        restore: "Obnoviť",
+        fullScreen: "Celá obrazovka",
+        previousDisplay: "Predchádzajúci displej",
+        edgeSnapEnable: "Priťahovať okná k okrajom obrazovky",
+        edgeSnapCaption: "Zapnite to, nižšie vyberte zvýraznené oblasti a potom presuňte záhlavie okna na jednu z nich a pustite.",
+        edgeSnapSystemConflict: "macOS používa rovnaké okraje. V Ploche a Docku vypnite dlaždicovanie okien, aby to mohol prevziať Vorssaint.",
+        edgeSnapOpenSystemSettings: "Otvoriť Plochu a Dock",
+        edgeSnapWaitingForSystem: "Zapnuté vo Vorssaint. Začne fungovať hneď po vypnutí dlaždicovania v macOS.",
+        marginMaximize: "Maximalizovať s okrajom",
+        gapsSection: "Medzery",
+        gapsCaption: "Priestor medzi priťahovanými oknami a medzi oknami a okrajom obrazovky.",
+        windowGap: "Medzera medzi oknami",
+        screenGap: "Medzera od okraja obrazovky",
+        sideRepeatCycle: "Opakovaním „Vľavo“ alebo „Vpravo“ striedať veľkosti",
+        sideRepeatCycleCaption: "Polovica, potom dve tretiny, potom jedna tretina na tom istom displeji. Keď je to vypnuté a máte viac ako jeden displej, opakovanie presunie okno na ďalší displej na tej strane.",
+        gapNone: "Žiadna",
+        gapTiny: "Drobná",
+        gapSmall: "Malá",
+        gapMedium: "Stredná",
+        gapLarge: "Veľká",
+        gapExtraLarge: "Extra veľká"
+    )
+
     static let de = WindowLayoutFeatureStrings(
         title: "Fensterlayout",
         caption: "Ordne Fenster in Bildschirmbereiche ein oder verschiebe und skaliere sie mit Trackpad oder Maus.",
@@ -2605,6 +2775,41 @@ struct MonitorAlertFeatureStrings {
         batteryTemperatureBodyFormat: "La batería llegó a %d °C."
     )
 
+    static let sk = MonitorAlertFeatureStrings(
+        section: "Hlásenia",
+        caption: "Hlásenia sa spustia po dosiahnutí vybraných limitov. Hlásenia o vyťažení a teplote CPU ignorujú výkyvy kratšie ako približne 12 sekúnd. Nastavenie opakovania obmedzuje iba opakovanie toho istého hlásenia.",
+        notificationsDenied: "Hlásenia pre Vorssaint sú vypnuté v Systémových nastaveniach, takže sa nemôžu zobraziť.",
+        cpu: "Vysoké vyťaženie CPU",
+        cpuTemperature: "Vysoká teplota CPU",
+        memory: "Kritický tlak na pamäť",
+        disk: "Málo miesta na disku",
+        battery: "Nízka batéria",
+        cpuThreshold: "CPU nad",
+        cpuTemperatureThreshold: "Teplota nad",
+        diskThreshold: "Voľné miesto pod",
+        batteryThreshold: "Batéria pod",
+        cooldown: "Zopakovať rovnaké hlásenie po",
+        cooldown2: "2 minúty",
+        cooldown5: "5 minút",
+        cooldown15: "15 minút",
+        cooldown30: "30 minút",
+        cooldown60: "1 hodina",
+        cpuTitle: "Vysoké vyťaženie CPU",
+        cpuBodyFormat: "Využitie CPU bolo niekoľko sekúnd nad %d%%.",
+        cpuTemperatureTitle: "Horúce CPU",
+        cpuTemperatureBodyFormat: "CPU dosiahlo %d °C.",
+        memoryTitle: "Kritická pamäť",
+        memoryBody: "Tlak na pamäť dosiahol kritickú úroveň.",
+        diskTitle: "Málo miesta na disku",
+        diskBodyFormat: "%@ má menej ako %d%% voľného miesta.",
+        batteryTitle: "Nízka batéria",
+        batteryBodyFormat: "Batéria je na %d%%.",
+        batteryTemperature: "Vysoká teplota batérie",
+        batteryTemperatureThreshold: "Teplota nad",
+        batteryTemperatureTitle: "Horúca batéria",
+        batteryTemperatureBodyFormat: "Batéria dosiahla %d °C."
+    )
+
     static let de = MonitorAlertFeatureStrings(
         section: "Warnungen",
         caption: "Warnungen erscheinen, wenn die gewählten Grenzwerte erreicht werden. CPU-Auslastung und Temperaturwarnungen ignorieren Spitzen, die kürzer als etwa 12 Sekunden dauern. Die Wiederholungseinstellung begrenzt nur die Wiederholung derselben Warnung.",
@@ -2848,5 +3053,222 @@ struct MonitorAlertFeatureStrings {
         batteryTemperatureThreshold: "溫度高於",
         batteryTemperatureTitle: "電池過熱",
         batteryTemperatureBodyFormat: "電池已達到 %d °C。"
+    )
+}
+
+extension SettingsCategoryStrings {
+    static let uk = SettingsCategoryStrings(
+        essentials: "Основне",
+        windowsControls: "Керування вікнами",
+        files: "Файли",
+        utilities: "Утиліти",
+        app: "Програма",
+        appManagement: "Керування програмами"
+    )
+}
+
+extension ClipboardFeatureStrings {
+    static let uk = ClipboardFeatureStrings(
+        title: "Буфер обміну",
+        enable: "Зберігати історію буфера обміну",
+        caption: "Зберігає скопійований текст, щоб ви могли використати його пізніше. Все залишається локальним і може бути очищене будь-коли.",
+        localNote: "Все залишається на цьому Mac. Дуже великі елементи ігноруються.",
+        skipSensitive: "Пропускати текст, схожий на конфіденційний",
+        skipSensitiveCaption: "Уникає збереження коротких рядків без пробілів, схожих на паролі, токени або ключі.",
+        limit: "Ліміт",
+        limitUnlimited: "Без обмежень",
+        showInPanel: "Показати в панелі",
+        shortcut: "Клавіатурне скорочення історії",
+        shortcutCaption: "Відкриває швидке вікно з пошуком, закріпленими елементами та клавіатурними скороченнями ⌘1–⌘9 для вставки в попередню програму.",
+        shortcutHint: "Натисніть на рядок, щоб вставити його в попередню програму. ⌘-клац вибирає кілька; ⌘C копіює без вставки.",
+        clickRowShortcut: "Натисніть рядок",
+        commandClickShortcut: "⌘ Клац",
+        pinned: "Закріплено",
+        recent: "Недавнє",
+        pin: "Закріпити",
+        unpin: "Відкріпити",
+        clearRecent: "Очистити недавні",
+        clearAll: "Очистити незакріплене",
+        empty: "Немає збереженого тексту",
+        disabled: "Увімкніть історію, щоб почати зберігати скопійований текст.",
+        search: "Шукати скопійований текст",
+        copy: "Скопіювати",
+        copied: "Скопійовано",
+        delete: "Видалити елемент",
+        selectMultiple: "Додати до стопки",
+        unselectMultiple: "Видалити зі стопки",
+        selectShortcutAction: "Вибрати",
+        pasteSelectedFormat: "Вставити %d",
+        copySelectedFormat: "Скопіювати %d",
+        clearSelection: "Очистити вибір",
+        moveUp: "Вгору",
+        moveDown: "Вниз",
+        noResults: "Немає результатів",
+        newestFirst: "Спочатку нові",
+        active: "Збереження нового тексту",
+        includeImagesFiles: "Також зберігати скопійовані зображення та файли",
+        includeImagesFilesCaption: "Зображення потрапляють в історію, а файли запам’ятовуються як посилання на їхнє розташування. Закріплюйте та вставляйте їх як будь-який текстовий елемент.",
+        imageEntryLabel: "Зображення",
+        fileCountFormat: "Файлів: %d",
+        pasteImageAsFile: "Вставляти скопійовані зображення як файли",
+        pasteImageAsFileCaption: "Коли активний Finder, ⌘V зберігає скопійоване зображення як PNG у поточній папці.",
+        previewLabel: "Попередній перегляд",
+        edit: "Редагувати",
+        cancel: "Скасувати",
+        save: "Зберегти",
+        autoClearEnable: "Автоочищення буфера з затримкою",
+        autoClearSecondsSuffix: "с",
+        autoClearOnSleep: "Очищати буфер при засинанні комп’ютера",
+        autoClearOnDisplaySleep: "Очищати буфер при засинанні дисплея",
+        autoClearOnScreenLock: "Очищати буфер при блокуванні екрана",
+        autoClearCaption: "Очищає лише системний буфер обміну. Збережені елементи залишаються в історії.",
+        deleteSelectedFormat: "Видалити %d",
+        menuBarPreview: "Показувати останню копію на смузі меню",
+        menuBarPreviewCaption: "Показує скорочений перегляд останнього скопійованого вмісту поруч зі значком. Натисніть, щоб відкрити історію.",
+        menuBarPreviewLength: "Довжина перегляду",
+        menuBarPreviewLengthSuffix: "симв."
+    )
+}
+
+extension WindowLayoutFeatureStrings {
+    static let uk = WindowLayoutFeatureStrings(
+        title: "Розкладка вікон",
+        caption: "Розставляйте вікна у розділи екрана або переміщуйте та змінюйте їхній розмір трекпедом або мишею.",
+        showInPanel: "Показати в панелі",
+        gestureSection: "Перетягування вікна",
+        gestureEnable: "Переміщення та зміна розміру перетягуванням",
+        gestureCaption: "На трекпеді або миші утримуйте показані клавіші-модифікатори та перетягуйте в будь-якому місці всередині вікна.",
+        gestureModifiers: "Клавіші для переміщення",
+        gestureMove: "Перетягніть для переміщення",
+        gestureResize: "Додайте Shift та перетягуйте для зміни розміру",
+        gestureResizeHint: "Стартова точка обирає найближчий край або кут. На миші перетягування правою кнопкою також змінює розмір.",
+        gestureRaiseWindow: "Винести перетягуване вікно на передній план",
+        shortcuts: "Клавіатурні скорочення",
+        shortcutsCaption: "Використовуйте глобальні клавіатурні скорочення, щоб розташувати активне вікно без відкриття панелі.",
+        permissionCaption: "Використовує дозвіл «Доступність» лише для переміщення та зміни розміру вікон.",
+        noWindow: "Активне вікно не знайдено.",
+        missingPermission: "Надайте дозвіл «Доступність», щоб переміщувати вікна.",
+        failed: "Не вдалося перемістити це вікно.",
+        done: "Вікно розташоване.",
+        restored: "Вікно відновлено.",
+        noRestore: "Немає попередньої розкладки для відновлення.",
+        target: "Активне вікно",
+        halves: "Половини",
+        thirds: "Третини",
+        quarterRows: "Ряди по чверті",
+        quarterColumns: "Стовпці по чверті",
+        sixths: "Шостини",
+        corners: "Кути",
+        other: "Дії",
+        leftHalf: "Ліворуч",
+        rightHalf: "Праворуч",
+        topHalf: "Вгорі",
+        bottomHalf: "Внизу",
+        centerHalf: "Центральна 1/2",
+        leftThird: "Ліва 1/3",
+        centerThird: "Центральна 1/3",
+        rightThird: "Права 1/3",
+        leftTwoThirds: "Ліва 2/3",
+        rightTwoThirds: "Права 2/3",
+        centerTwoThirds: "Центральні 2/3",
+        topThird: "Верхня 1/3",
+        middleThird: "Середня 1/3",
+        bottomThird: "Нижня 1/3",
+        topTwoThirds: "Верхні 2/3",
+        bottomTwoThirds: "Нижні 2/3",
+        topQuarter: "Верхня 1/4",
+        upperMiddleQuarter: "Верхня середня 1/4",
+        lowerMiddleQuarter: "Нижня середня 1/4",
+        bottomQuarter: "Нижня 1/4",
+        leftQuarter: "Ліва 1/4",
+        leftMiddleQuarter: "Ліва середня 1/4",
+        rightMiddleQuarter: "Права середня 1/4",
+        rightQuarter: "Права 1/4",
+        topLeftSixth: "Вгорі ліворуч 1/6",
+        topCenterSixth: "Вгорі по центру 1/6",
+        topRightSixth: "Вгорі праворуч 1/6",
+        bottomLeftSixth: "Внизу ліворуч 1/6",
+        bottomCenterSixth: "Внизу по центру 1/6",
+        bottomRightSixth: "Внизу праворуч 1/6",
+        topLeft: "Вгорі ліворуч",
+        topRight: "Вгорі праворуч",
+        bottomLeft: "Внизу ліворуч",
+        bottomRight: "Внизу праворуч",
+        maximize: "Розгорнути",
+        center: "Центр",
+        nextDisplay: "Наступний дисплей",
+        restore: "Відновити",
+        fullScreen: "На весь екран",
+        previousDisplay: "Попередній дисплей",
+        edgeSnapEnable: "Прилипати вікнами до країв екрана",
+        edgeSnapCaption: "Увімкніть цю функцію, виберіть підсвічені області нижче, а потім перетягніть заголовок вікна до однієї з них і відпустіть.",
+        edgeSnapSystemConflict: "macOS використовує ті самі краї. Вимкніть мозаїку вікон у розділі «Робочий стіл і Dock», щоб Vorssaint міг керувати ними.",
+        edgeSnapOpenSystemSettings: "Відкрити «Робочий стіл і Dock»",
+        edgeSnapWaitingForSystem: "Увімкнено в Vorssaint. Почне працювати, щойно мозаїку macOS буде вимкнено.",
+        marginMaximize: "Розгорнути з полем",
+        gapsSection: "Проміжки",
+        gapsCaption: "Проміжок між прилиплими вікнами та між вікнами та краєм екрана.",
+        windowGap: "Проміжок між вікнами",
+        screenGap: "Проміжок екрана",
+        sideRepeatCycle: "Повтор «Ліворуч» або «Праворуч» змінює розмір",
+        sideRepeatCycleCaption: "Половина, потім дві третини й третина на тому самому дисплеї. Якщо вимкнено й дисплеїв кілька, повтор переносить вікно на наступний дисплей із того боку.",
+        gapNone: "Немає",
+        gapTiny: "Крихітний",
+        gapSmall: "Малий",
+        gapMedium: "Середній",
+        gapLarge: "Великий",
+        gapExtraLarge: "Дуже великий"
+    )
+}
+
+extension MonitorAlertFeatureStrings {
+    static let uk = MonitorAlertFeatureStrings(
+        section: "Сповіщення",
+        caption: "Сповіщення спрацьовують, коли досягаються вибрані межі. Сповіщення про використання й температуру CPU ігнорують сплески коротші за 12 секунд. Налаштування повтору обмежує лише повтори того самого сповіщення.",
+        notificationsDenied: "Сповіщення Vorssaint вимкнено в Системних параметрах, тому вони не можуть з’являтися.",
+        cpu: "Високий CPU",
+        cpuTemperature: "Висока температура CPU",
+        memory: "Критичний тиск пам’яті",
+        disk: "Мало місця на диску",
+        battery: "Низький заряд акумулятора",
+        cpuThreshold: "CPU вище",
+        cpuTemperatureThreshold: "Температура вище",
+        diskThreshold: "Вільного місця менше",
+        batteryThreshold: "Заряд акумулятора нижче",
+        cooldown: "Повторити те саме сповіщення через",
+        cooldown2: "2 хвилини",
+        cooldown5: "5 хвилин",
+        cooldown15: "15 хвилин",
+        cooldown30: "30 хвилин",
+        cooldown60: "1 годину",
+        cpuTitle: "Високий CPU",
+        cpuBodyFormat: "CPU тримався вище %d%% кілька секунд.",
+        cpuTemperatureTitle: "Гарячий CPU",
+        cpuTemperatureBodyFormat: "CPU досяг %d °C.",
+        memoryTitle: "Критична пам’ять",
+        memoryBody: "Тиск пам’яті досяг критичного рівня.",
+        diskTitle: "Мало місця на диску",
+        diskBodyFormat: "На %@ залишилося менше %d%%.",
+        batteryTitle: "Низький заряд акумулятора",
+        batteryBodyFormat: "Заряд акумулятора становить %d%%.",
+        batteryTemperature: "Висока температура акумулятора",
+        batteryTemperatureThreshold: "Температура вище",
+        batteryTemperatureTitle: "Гарячий акумулятор",
+        batteryTemperatureBodyFormat: "Акумулятор нагрівся до %d °C."
+    )
+}
+
+extension MixerFeatureStrings {
+    static let uk = MixerFeatureStrings(
+        hideInactiveApps: "Приховувати неактивні програми",
+        pin: "Закріпити вгорі",
+        unpin: "Відкріпити",
+        moveUp: "Вгору",
+        moveDown: "Вниз",
+        pinFirst: "Закріпити на початку",
+        moveLeft: "Перемістити ліворуч",
+        moveRight: "Перемістити праворуч",
+        arrange: "Утримуйте Command і перетягуйте, щоб змінити порядок",
+        actions: "Дії"
     )
 }

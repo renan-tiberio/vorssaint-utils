@@ -141,6 +141,13 @@ enum DefaultsKey {
     static let soundOutputSwitcherEnabled = "soundOutputSwitcherEnabled"
     static let soundOutputSwitcherShortcut = "soundOutputSwitcherShortcut"
     static let soundOutputSwitcherDeviceUIDs = "soundOutputSwitcherDeviceUIDs"
+    // Audio device priority: ordered output and microphone lists the feature
+    // enforces automatically when its enable flags are on.
+    static let audioPriorityOutputEnabled = "audioPriorityOutputEnabled"
+    static let audioPriorityInputEnabled = "audioPriorityInputEnabled"
+    static let audioPriorityOutputUIDs = "audioPriorityOutputUIDs"    // [String] ordered device UIDs
+    static let audioPriorityInputUIDs = "audioPriorityInputUIDs"     // [String] ordered device UIDs
+    static let audioPriorityDeviceNames = "audioPriorityDeviceNames" // [uid: name] last-known names
     static let preferredInputDevice = "preferredInputDevice" // audio input device UID
     static let finderCutPasteEnabled = "finderCutPasteEnabled"
     static let finderCutPasteShowHUD = "finderCutPasteShowHUD"
@@ -809,6 +816,7 @@ enum DefaultsKey {
     static let notchClipboard = "notchClipboard"
     static let notchClipboardWindow = "notchClipboardWindow"
     static let notchCapture = "notchCapture"
+    static let notchTrackChange = "notchTrackChange"
     // Legacy backup key. Resting content is now selected explicitly by notchIdleContent.
     static let notchMusicActivity = "notchMusicActivity"
     static let notchShowInCaptures = "notchShowInCaptures"
@@ -1137,6 +1145,14 @@ enum Defaults {
         DefaultsKey.preciseVolumeRollerEnabled: false,
         DefaultsKey.soundOutputSwitcherEnabled: false,
         DefaultsKey.soundOutputSwitcherShortcut: GlobalShortcut.soundOutputSwitcherDefault.storageValue,
+        // The feature itself ships uninstalled. On first install both halves
+        // work immediately; an explicit off choice is persisted and wins over
+        // these registered defaults on later launches or reinstalls.
+        DefaultsKey.audioPriorityOutputEnabled: true,
+        DefaultsKey.audioPriorityInputEnabled: true,
+        DefaultsKey.audioPriorityOutputUIDs: [String](),
+        DefaultsKey.audioPriorityInputUIDs: [String](),
+        DefaultsKey.audioPriorityDeviceNames: [String: String](),
         // Finder never benefits from being "quit" (it just relaunches), so
         // it's excepted out of the box.
         DefaultsKey.autoQuitExceptions: mandatoryAutoQuitExceptionBundleIDs,
@@ -1303,6 +1319,7 @@ enum Defaults {
         DefaultsKey.notchClipboard: false,
         DefaultsKey.notchClipboardWindow: true,
         DefaultsKey.notchCapture: false,
+        DefaultsKey.notchTrackChange: false,
         DefaultsKey.notchMusicActivity: false,
         DefaultsKey.notchShowInCaptures: true,
         DefaultsKey.notchHideInCaptures: false,
@@ -1758,13 +1775,14 @@ enum Defaults {
         defaults.removeObject(forKey: DefaultsKey.brightnessDDCWriteOnlyPaths)
     }
 
-    /// The app switcher used to share Dock Preview's thumbnail size. Copy a
-    /// chosen size once, before defaults are registered, so neither changes
-    /// on upgrade.
+    /// The app switcher used to share Dock Preview's thumbnail size. Copy it
+    /// once, before defaults are registered, so neither changes on upgrade.
+    /// With no size chosen yet, store the default all the same: a Dock size
+    /// picked later would otherwise be copied at the next launch.
     static func migrateSwitcherPreviewSize(in defaults: UserDefaults) {
-        guard defaults.object(forKey: DefaultsKey.switcherPreviewSize) == nil,
-              let size = defaults.string(forKey: DefaultsKey.previewSize) else { return }
-        defaults.set(size, forKey: DefaultsKey.switcherPreviewSize)
+        guard defaults.object(forKey: DefaultsKey.switcherPreviewSize) == nil else { return }
+        defaults.set(defaults.string(forKey: DefaultsKey.previewSize) ?? "normal",
+                     forKey: DefaultsKey.switcherPreviewSize)
     }
 
     static func migrateBatteryTemperatureVisibility(in defaults: UserDefaults) {
@@ -2240,5 +2258,29 @@ enum Defaults {
 
     static func sanitizedPreferredInputDeviceUID(_ value: Any?) -> String? {
         MixerRoutingSupport.sanitizedDeviceUID(value)
+    }
+
+    static let audioPriorityMaxListSize = 64
+
+    static func sanitizedAudioPriorityUIDs(_ raw: [Any]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for value in raw {
+            guard let uid = MixerRoutingSupport.sanitizedDeviceUID(value),
+                  seen.insert(uid).inserted else { continue }
+            result.append(uid)
+            if result.count >= audioPriorityMaxListSize { break }
+        }
+        return result
+    }
+
+    static func sanitizedAudioPriorityDeviceNames(_ raw: [String: Any]) -> [String: String] {
+        var result: [String: String] = [:]
+        for (rawUID, rawName) in raw {
+            guard let uid = MixerRoutingSupport.sanitizedDeviceUID(rawUID),
+                  let name = MixerRoutingSupport.sanitizedDeviceUID(rawName) else { continue }
+            result[uid] = name
+        }
+        return result
     }
 }
