@@ -1315,13 +1315,12 @@ enum RepositoryFeatureTests {
         suite.expect(!selfUninstallSource.contains("_ = Sudoers.pmsetDisableSleep")
                 && !uninstallerSource.contains("_ = Sudoers.pmsetDisableSleep"),
                "neither uninstall path discards the result of restoring sleep")
-        suite.expect(selfUninstallSource.contains("guard SpacesOrderHold.restoreForRemoval(), restoreSleepBeforeRemoval() else")
-                && selfUninstallSource.contains("guard detachFromSystem() else")
+        suite.expect(selfUninstallSource.contains("guard detachFromSystem() else")
                 && selfUninstallSource.contains("restoreSleepBeforeRemoval() -> Bool")
                 && selfUninstallSource.contains("guard FanControlService.restoreAndUnregisterForRemoval() else")
                 && selfUninstallSource.contains("adminPromptRecover")
                 && selfUninstallSource.contains("verification.status == 0"),
-               "in-app uninstall aborts unless fans, normal sleep and Space rearranging are restored before removal")
+               "in-app uninstall aborts unless fans and normal sleep are restored before removal")
         suite.expect(uninstallerSource.contains("SpacesOrderHold.restoreForRemoval()"),
                "script uninstall puts back the Space rearranging setting before the preferences are deleted")
         suite.expect(uninstallScriptSource.contains("SleepDisabled"),

@@ -163,14 +163,17 @@ final class SpacesOrderHold {
             if !reconcile(wanted: wanted) {
                 Self.log.error("Space rearranging did not change (fixed order wanted: \(wanted, privacy: .public))")
             }
-            // Read again: a sync that let go has just turned the toggle off.
+            // Read again: the toggle may have changed while the work ran. A
+            // let-go handed to the main thread settles the watch once the
+            // toggle is off.
             watch(isWanted)
         }
     }
 
     /// Lets go when the user has turned rearranging back on while the feature
     /// held it off. It never turns rearranging off itself, so a hold still
-    /// waiting for its sync is left to that sync. True when it let go.
+    /// waiting for its sync is left to that sync. True when it let go or
+    /// handed the let-go to the main thread.
     @discardableResult
     func letGoIfRearrangingReturned() -> Bool {
         guard isWanted, let marker = defaults.string(forKey: DefaultsKey.spacesOrderRestore),
@@ -194,7 +197,10 @@ final class SpacesOrderHold {
         watchTokens = moments.map { center, name in
             (center: center, token: center.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
                 self?.queue.async { [weak self] in
-                    guard let self, self.letGoIfRearrangingReturned() else { return }
+                    // watchTokens is only touched on this queue, so a watch
+                    // already stopped by a notification queued ahead of this
+                    // one is caught here before reading the Dock again.
+                    guard let self, !self.watchTokens.isEmpty, self.letGoIfRearrangingReturned() else { return }
                     self.watch(false)
                 }
             })
@@ -212,11 +218,17 @@ final class SpacesOrderHold {
     /// Puts the user's setting back before the app's preferences are deleted,
     /// waiting for the change. False when rearranging is still off.
     static func restoreForRemoval() -> Bool {
+        shared.restoreForRemoval()
+    }
+
+    /// Puts this hold's owed setting back, waiting for the change. True when
+    /// nothing was owed, without touching the Dock.
+    func restoreForRemoval() -> Bool {
         // Checked on the queue, behind any sync still waiting to hold, so a
         // marker that sync is about to write is seen and put back too.
-        shared.queue.sync {
-            guard hasPendingRestore else { return true }
-            return shared.reconcile(wanted: false)
+        queue.sync {
+            guard defaults.string(forKey: DefaultsKey.spacesOrderRestore) != nil else { return true }
+            return reconcile(wanted: false)
         }
     }
 
@@ -233,16 +245,19 @@ final class SpacesOrderHold {
             // still knows what to put back.
             defaults.set(restore, forKey: DefaultsKey.spacesOrderRestore)
             defaults.synchronize()
-            guard apply(rearranging: false, removeKey: false) else {
-                // The marker goes only if nothing changed; a preference
-                // written without its restart still has to return.
-                if system.read() != .off { clearMarker() }
+            let result = apply(rearranging: false, removeKey: false)
+            guard result.done else {
+                // The marker goes only if nothing changed or can still change:
+                // a live call the Dock accepted may land after its checks ran
+                // out, and a preference written without its restart still has
+                // to return.
+                if !result.liveAccepted, system.read() != .off { clearMarker() }
                 return false
             }
             return true
         case .release(let removeKey):
             // The marker stays when this fails, so the next sync tries again.
-            guard apply(rearranging: true, removeKey: removeKey) else { return false }
+            guard apply(rearranging: true, removeKey: removeKey).done else { return false }
             clearMarker()
             return true
         case .forget:
@@ -254,7 +269,21 @@ final class SpacesOrderHold {
         }
     }
 
+    /// Clears the marker and turns the toggle off on the main thread, where
+    /// the settings views follow both. Off the main thread the two writes are
+    /// handed over without waiting: a removal waiting on the main thread for
+    /// this queue would never let a waiting hand-off through. Until they land
+    /// the state still reads as a let-go, and a repeated one changes nothing.
     private func letGo() {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [self] in
+                letGo()
+                // A sync that handed this over read the toggle while it was
+                // still on, so the watch it kept stops here.
+                queue.async { [self] in watch(isWanted) }
+            }
+            return
+        }
         clearMarker()
         defaults.set(false, forKey: DefaultsKey.spacesOrderEnabled)
         defaults.synchronize()
@@ -263,16 +292,18 @@ final class SpacesOrderHold {
 
     /// The Dock's own call applies at once. Only when it is missing or does not
     /// take effect is the preference written directly, with one Dock restart
-    /// to read it.
-    private func apply(rearranging: Bool, removeKey: Bool) -> Bool {
-        if system.setLive(rearranging), confirm(rearranging) {
+    /// to read it. Also reports whether the Dock accepted the live call, which
+    /// can still take effect after its checks ran out.
+    private func apply(rearranging: Bool, removeKey: Bool) -> (done: Bool, liveAccepted: Bool) {
+        let liveAccepted = system.setLive(rearranging)
+        if liveAccepted, confirm(rearranging) {
             // A missing key and an explicit on behave the same; removing it
             // leaves the preference exactly as it was found.
             if removeKey { _ = system.write(nil) }
-            return true
+            return (true, true)
         }
-        guard system.write(removeKey ? nil : rearranging) else { return false }
-        return system.restartDock()
+        guard system.write(removeKey ? nil : rearranging) else { return (false, liveAccepted) }
+        return (system.restartDock(), liveAccepted)
     }
 
     private func confirm(_ rearranging: Bool) -> Bool {
