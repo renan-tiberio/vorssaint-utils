@@ -291,15 +291,15 @@ final class SmoothScrollService: ObservableObject {
         // Linear scrolling is applied here for the same reason the flip is:
         // this tap swallows the tick before the wheel tap can see it. The cap
         // follows linear scrolling's own exception list the same way.
-        let linearLinesPerNotch: Int? = AppFeature.linearScroll.isAvailable
-            && defaults.bool(forKey: DefaultsKey.linearScrollEnabled)
-            && !exceptions.excludesPointerTarget(
-                .linearScroll,
-                at: event.location,
-                sourceProcessID: sourceProcessID)
-            ? ScrollWheelSupport.sanitizedLinesPerNotch(
-                defaults.integer(forKey: DefaultsKey.linearScrollLines))
-            : nil
+        let linearLinesPerNotch = ScrollWheelSupport.linearLinesPerNotch(
+            defaults: defaults,
+            isAvailable: AppFeature.linearScroll.isAvailable,
+            isExcepted: {
+                exceptions.excludesPointerTarget(
+                    .linearScroll,
+                    at: event.location,
+                    sourceProcessID: sourceProcessID)
+            })
         let shiftPressed = event.flags.contains(.maskShift)
         let vertical: Double
         let horizontal: Double

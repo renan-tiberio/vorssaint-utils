@@ -534,27 +534,28 @@ enum PointerInputFeatureTests {
                                                              stringFor: { _ in nil })
         suite.expect(!uninstalledInverter.invertVertical && !uninstalledInverter.invertHorizontal,
                "an uninstalled inverter flips nothing even with its switches left on")
-        let wheelTapSources = ["Sources/Vorssaint/Services/ScrollInverter.swift",
-                               "Sources/Vorssaint/Services/SmoothScrollService.swift"]
-            .map { (try? String(contentsOfFile: $0, encoding: .utf8)) ?? "" }
-        suite.expect(wheelTapSources.allSatisfy {
-                   $0.contains("DefaultsKey.linearScrollEnabled") && $0.contains("ScrollWheelSupport.linear")
-               },
-               "both wheel taps consult linear scrolling, so the glide and the raw wheel agree")
-        let compactWheelTapSources = wheelTapSources.map { $0.filter { !$0.isWhitespace } }
-        suite.expect(compactWheelTapSources.allSatisfy { $0.contains("excludesPointerTarget(.linearScroll,") },
-               "both wheel taps leave the apps on linear scrolling's own list alone")
-        suite.expect(compactWheelTapSources[0].contains(
-                "vertical:rawVertical.hasMovement?linearVertical.delta:nil,"
-                + "horizontal:rawHorizontal.hasMovement?linearHorizontal.delta:nil"),
-               "linear scrolling writes back every axis that moves, so a high-resolution fraction cannot slip through")
-        suite.expect(compactWheelTapSources[0].contains("letdirection=ScrollDirectionPreferences(defaults:defaults)ifdirection.isEnabled,")
-                && compactWheelTapSources[1].contains("letinvertVertical=adjustDirectionHere&&direction.invertVertical"),
-               "both taps take the flip from the direction features' own availability, not from linear scrolling keeping the tap up")
-        suite.expect(((try? String(contentsOfFile: "Sources/Vorssaint/App/FeatureRuntime.swift",
-                             encoding: .utf8)) ?? "")
-                .contains(".linearScroll: { ScrollInverter.shared.syncWithPreferences() }"),
-               "linear scrolling rides the wheel tap's lifecycle")
+        let linearName = "com.vorssaint.tests.linear-lines.\(UUID().uuidString)"
+        let linearDefaults = UserDefaults(suiteName: linearName)!
+        defer { linearDefaults.removePersistentDomain(forName: linearName) }
+        var exceptionChecks = 0
+        let excepted = { () -> Bool in exceptionChecks += 1; return true }
+        let allowed = { () -> Bool in exceptionChecks += 1; return false }
+        linearDefaults.set(false, forKey: DefaultsKey.linearScrollEnabled)
+        suite.expect(ScrollWheelSupport.linearLinesPerNotch(defaults: linearDefaults, isAvailable: true,
+                                                           isExcepted: excepted) == nil
+                        && exceptionChecks == 0,
+               "linear scrolling switched off never asks the exception list")
+        linearDefaults.set(true, forKey: DefaultsKey.linearScrollEnabled)
+        linearDefaults.set(5, forKey: DefaultsKey.linearScrollLines)
+        suite.expect(ScrollWheelSupport.linearLinesPerNotch(defaults: linearDefaults, isAvailable: false,
+                                                           isExcepted: allowed) == nil,
+               "an uninstalled feature caps nothing even with its switch left on")
+        suite.expect(ScrollWheelSupport.linearLinesPerNotch(defaults: linearDefaults, isAvailable: true,
+                                                           isExcepted: excepted) == nil,
+               "an app on linear scrolling's own list is left out of the cap")
+        suite.expect(ScrollWheelSupport.linearLinesPerNotch(defaults: linearDefaults, isAvailable: true,
+                                                           isExcepted: allowed) == 5,
+               "both wheel taps read the same lines per notch while linear scrolling applies")
         var smoothEngine = SmoothScrollSupport.Engine()
         smoothEngine.add(vertical: 40, horizontal: 0)
         suite.expect(smoothEngine.remainingVertical == 40,

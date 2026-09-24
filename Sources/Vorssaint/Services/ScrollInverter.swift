@@ -207,13 +207,15 @@ final class ScrollInverter: ObservableObject {
         else { return Unmanaged.passUnretained(event) }
 
         let defaults = UserDefaults.standard
-        let linearApplies = AppFeature.linearScroll.isAvailable
-            && defaults.bool(forKey: DefaultsKey.linearScrollEnabled)
-            && !MouseAppExceptions.shared.excludesPointerTarget(
-                .linearScroll,
-                at: event.location,
-                sourceProcessID: sourceProcessID)
-        if linearApplies {
+        if let linesPerNotch = ScrollWheelSupport.linearLinesPerNotch(
+            defaults: defaults,
+            isAvailable: AppFeature.linearScroll.isAvailable,
+            isExcepted: {
+                MouseAppExceptions.shared.excludesPointerTarget(
+                    .linearScroll,
+                    at: event.location,
+                    sourceProcessID: sourceProcessID)
+            }) {
             // Capture both axes before any set: writing a line delta makes the
             // system rederive its point and fixed-point fields.
             let rawVertical = ScrollWheelAxisDelta(
@@ -224,8 +226,6 @@ final class ScrollInverter: ObservableObject {
                 line: event.getIntegerValueField(.scrollWheelEventDeltaAxis2),
                 point: event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2),
                 fixedPoint: event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2))
-            let linesPerNotch = ScrollWheelSupport.sanitizedLinesPerNotch(
-                defaults.integer(forKey: DefaultsKey.linearScrollLines))
             let linearVertical = ScrollWheelSupport.linearDelta(
                 rawVertical, isContinuous: traits.isContinuous,
                 linesPerNotch: linesPerNotch, carry: linearCarryVertical)
