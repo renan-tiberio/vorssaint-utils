@@ -889,6 +889,7 @@ extension AppFeature {
         case .screenshot: return FeatureStrings.screenshot(L10n.shared.language).pageTitle
         case .screenRecorder: return FeatureStrings.recorder(L10n.shared.language).pageTitle
         case .cameraPreview: return FeatureStrings.cameraPreview(L10n.shared.language).pageTitle
+        case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).pageTitle
         case .notchGestures: return FeatureStrings.notchGestures(L10n.shared.language).title
         case .notchTimer: return FeatureStrings.notchActivities(L10n.shared.language).timer
         case .notchAccessories: return FeatureStrings.notchActivities(L10n.shared.language).accessories
@@ -917,6 +918,7 @@ extension AppFeature {
         case .monitorNetwork: return s.monitorShowNetwork
         case .monitorDisk: return s.diskSection
         case .monitorPower: return s.powerSection
+        case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).title
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
         }
     }
@@ -967,6 +969,7 @@ extension AppFeature {
         case .screenshot: return FeatureStrings.screenshot(L10n.shared.language).hubDescription
         case .screenRecorder: return FeatureStrings.recorder(L10n.shared.language).hubDescription
         case .cameraPreview: return FeatureStrings.cameraPreview(L10n.shared.language).hubDescription
+        case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).hubDescription
         case .notchGestures: return FeatureStrings.notchGestures(L10n.shared.language).description
         case .notchTimer: return FeatureStrings.notchActivities(L10n.shared.language).timerDescription
         case .notchAccessories: return FeatureStrings.notchActivities(L10n.shared.language).accessoryDescription
@@ -1001,6 +1004,7 @@ extension AppFeature {
         case .monitorNetwork: return hub.descMonitorNetwork
         case .monitorDisk: return hub.descMonitorDisk
         case .monitorPower: return hub.descMonitorPower
+        case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).hubDescription
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).hubDescription
         }
     }

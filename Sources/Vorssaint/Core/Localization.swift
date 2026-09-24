@@ -292,6 +292,8 @@ struct Strings {
     let configuring: String
     let sudoersFailed: String
     let clamshellExplanation: String
+    let dimScreenOnLidCloseTitle: String
+    let dimScreenOnLidCloseCaption: String
 
     // MARK: Settings — mouse
     let scrollSection: String
@@ -663,7 +665,12 @@ struct Strings {
     let shelfShakeCaption: String
     let shelfDropZoneToggle: String
     let shelfDropZoneCaption: String
+    let shelfDropZoneCaptionTopCenter: String
     let shelfDropZoneLabel: String
+    let shelfDockPlacement: String
+    let shelfDockMenuBar: String
+    let shelfDockTopCenter: String
+    let shelfDockIslandNote: String
     let shelfCollapse: String
     let shelfBehaviorTitle: String
     let shelfCloseAfterDrop: String
@@ -1085,6 +1092,7 @@ struct Strings {
     let musicBlockUnavailable: String
     let musicBlockReplacementLabel: String
     let musicBlockReplacementNone: String
+    let musicBlockReplacementBlocked: String
     let musicBlockChooseApp: String
 
     // MARK: Cleaner
@@ -1383,6 +1391,8 @@ extension Strings {
         configuring: "Configurando…",
         sudoersFailed: "Não foi possível ativar a tampa fechada. Tente de novo.",
         clamshellExplanation: "“Continuar com a tampa fechada” desativa completamente a suspensão enquanto “Manter acordado” estiver ativo e é revertido automaticamente quando a sessão termina ou o app é encerrado. Prefira usá-lo conectado à energia.",
+        dimScreenOnLidCloseTitle: "Escurecer a tela completamente",
+        dimScreenOnLidCloseCaption: "Escurece a tela quando a tampa fecha e restaura o brilho quando ela abre.",
 
         scrollSection: "Rolagem",
         invertMouseScroll: "Inverter rolagem do mouse",
@@ -1745,7 +1755,12 @@ extension Strings {
         shelfShakeCaption: "Sacuda o ponteiro rapidamente segurando um item para chamar a área perto do cursor.",
         shelfDropZoneToggle: "Guardar arquivos na barra de menus ao arrastar",
         shelfDropZoneCaption: "Ao arrastar um arquivo, a área aparece embaixo do ícone na barra de menus. O que você soltar fica guardado ali, num botão que você encolhe e abre com um clique e que some quando a área fica vazia.",
+        shelfDropZoneCaptionTopCenter: "Ao arrastar um arquivo, a área aparece como um selo no topo, no centro da tela. O que você soltar fica guardado ali, num selo que você abre com um clique e que some quando a área fica vazia.",
         shelfDropZoneLabel: "Solte aqui",
+        shelfDockPlacement: "Posição",
+        shelfDockMenuBar: "Embaixo do ícone da barra de menus",
+        shelfDockTopCenter: "No topo, no centro da tela",
+        shelfDockIslandNote: "Enquanto a Dynamic Island está ligada, o centro do topo é dela.",
         shelfCollapse: "Encolher",
         shelfBehaviorTitle: "Depois de usar",
         shelfCloseAfterDrop: "Fechar depois de soltar em outro app",
@@ -2141,6 +2156,7 @@ extension Strings {
         musicBlockUnavailable: "Esta proteção está indisponível agora. Desligue e ligue a opção para tentar novamente.",
         musicBlockReplacementLabel: "Abrir no lugar",
         musicBlockReplacementNone: "Nenhum",
+        musicBlockReplacementBlocked: "O Música e o iTunes são os apps bloqueados, então não podem abrir no lugar. Escolha outro app.",
         musicBlockChooseApp: "Escolher app…",
         cleanerName: "Limpeza",
         cleanerIntroTitle: "Limpe o lixo do Mac",
@@ -2438,6 +2454,8 @@ extension Strings {
         configuring: "Configuring…",
         sudoersFailed: "Couldn’t turn on closed-lid mode. Try again.",
         clamshellExplanation: "“Keep going with the lid closed” fully disables sleep while “Keep awake” is active and is reverted automatically when the session ends or the app quits. Prefer using it plugged in.",
+        dimScreenOnLidCloseTitle: "Dim the screen to zero",
+        dimScreenOnLidCloseCaption: "Dims the screen when the lid closes and brings the brightness back when it opens.",
 
         scrollSection: "Scrolling",
         invertMouseScroll: "Invert mouse scrolling",
@@ -2800,7 +2818,12 @@ extension Strings {
         shelfShakeCaption: "Shake the pointer quickly while holding an item to summon it near the cursor.",
         shelfDropZoneToggle: "Keep dragged files in the menu bar",
         shelfDropZoneCaption: "While you drag a file, the shelf appears below the menu bar icon. Whatever you drop is kept right there, in a button you shrink and open with a click that goes away once the shelf is empty.",
+        shelfDropZoneCaptionTopCenter: "While you drag a file, the shelf appears as a badge at the top center of the screen. Whatever you drop is kept right there, in a badge you open with a click that goes away once the shelf is empty.",
         shelfDropZoneLabel: "Drop here",
+        shelfDockPlacement: "Position",
+        shelfDockMenuBar: "Below the menu bar icon",
+        shelfDockTopCenter: "Top center of the screen",
+        shelfDockIslandNote: "The Dynamic Island keeps the top center while it is on.",
         shelfCollapse: "Collapse",
         shelfBehaviorTitle: "After use",
         shelfCloseAfterDrop: "Close after dropping into another app",
@@ -3196,6 +3219,7 @@ extension Strings {
         musicBlockUnavailable: "This protection is unavailable right now. Turn it off and on to try again.",
         musicBlockReplacementLabel: "Open instead",
         musicBlockReplacementNone: "None",
+        musicBlockReplacementBlocked: "Music and iTunes are the apps being blocked, so they can’t open instead. Choose another app.",
         musicBlockChooseApp: "Choose app…",
         cleanerName: "Cleaner",
         cleanerIntroTitle: "Clean up your Mac",
