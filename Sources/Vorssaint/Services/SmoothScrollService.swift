@@ -337,17 +337,23 @@ final class SmoothScrollService: ObservableObject {
         } else {
             // The fixed-point field carries the fractional ticks that
             // high-resolution wheels report while the integer field reads 0.
-            var verticalTicks = SmoothScrollSupport.ticks(
-                line: Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1)),
-                fixedPoint: event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1))
-            var horizontalTicks = SmoothScrollSupport.ticks(
-                line: Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis2)),
-                fixedPoint: event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2))
+            let verticalLine = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+            let verticalFixedPoint = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+            let horizontalLine = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
+            let horizontalFixedPoint = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+            var verticalTicks = SmoothScrollSupport.ticks(line: Double(verticalLine),
+                                                          fixedPoint: verticalFixedPoint)
+            var horizontalTicks = SmoothScrollSupport.ticks(line: Double(horizontalLine),
+                                                            fixedPoint: horizontalFixedPoint)
+            // Linear scrolling counts notches, not the distance macOS scaled
+            // them to, so a slow notch weighs as much as a fast one.
             if let linearLinesPerNotch {
                 verticalTicks = ScrollWheelSupport.linearLines(
-                    ticks: verticalTicks, linesPerNotch: linearLinesPerNotch)
+                    ticks: ScrollWheelSupport.discreteTicks(line: verticalLine, fixedPoint: verticalFixedPoint),
+                    linesPerNotch: linearLinesPerNotch)
                 horizontalTicks = ScrollWheelSupport.linearLines(
-                    ticks: horizontalTicks, linesPerNotch: linearLinesPerNotch)
+                    ticks: ScrollWheelSupport.discreteTicks(line: horizontalLine, fixedPoint: horizontalFixedPoint),
+                    linesPerNotch: linearLinesPerNotch)
             }
             let axes = SmoothScrollSupport.axes(
                 vertical: verticalTicks,

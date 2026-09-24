@@ -66,11 +66,14 @@ enum LinearScrollTapTests {
             inverter.handle(type: .scrollWheel, event: event)?.takeUnretainedValue()
         }
 
+        // Notches as a plain Bluetooth wheel sends them with macOS acceleration
+        // on: slow, medium and fast turns of the same single notch.
         configure()
-        let fast = deliver(wheel(line: 4, fixed: 4, point: 40))
-        let slow = deliver(wheel(line: 1, fixed: 1, point: 10))
-        suite.expect(fast.map(verticalLine) == 3 && slow.map(verticalLine) == 3,
-                     "a fast spin and a slow notch leave the wheel tap as the same three lines")
+        let slow = deliver(wheel(line: 1, fixed: 0.1, point: 1))
+        let medium = deliver(wheel(line: 1, fixed: 0.403, point: 5))
+        let fast = deliver(wheel(line: 7, fixed: 7.298, point: 73))
+        suite.expect([slow, medium, fast].allSatisfy { $0.map(verticalLine) == 3 },
+                     "a slow, a medium and a fast notch leave the wheel tap as the same three lines")
 
         configure(lines: 1)
         let fraction = deliver(wheel(line: 1, fixed: 1.5, point: 15))

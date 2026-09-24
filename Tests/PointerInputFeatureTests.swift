@@ -496,11 +496,18 @@ enum PointerInputFeatureTests {
         let fastNotch = ScrollWheelSupport.linearDelta(
             ScrollWheelAxisDelta(line: 3, point: 30, fixedPoint: 3),
             isContinuous: false, linesPerNotch: 3, carry: 0)
+        // A slow notch as a plain Bluetooth wheel sends it: macOS has shrunk it
+        // to a tenth of a line and one point, while its line count reads one.
         let slowNotch = ScrollWheelSupport.linearDelta(
-            ScrollWheelAxisDelta(line: -1, point: -10, fixedPoint: -1),
+            ScrollWheelAxisDelta(line: -1, point: -1, fixedPoint: -0.1),
             isContinuous: false, linesPerNotch: 3, carry: 0)
         suite.expect(fastNotch.delta.line == 3 && fastNotch.carry == 0 && slowNotch.delta.line == -3,
                "a fast discrete notch and a slow one are written back as the same lines")
+        suite.expect(ScrollWheelSupport.discreteTicks(line: 1, fixedPoint: 0.1) == 1
+                && ScrollWheelSupport.discreteTicks(line: -7, fixedPoint: -7.3) == -1
+                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: 0.25) == 0.25
+                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: .nan) == 0,
+               "any notch whose line count moves counts whole, however macOS scaled it; only a zero line keeps its fraction")
         var fractionCarry = 0.0
         var fractionLines: Int64 = 0
         for _ in 0..<4 {
