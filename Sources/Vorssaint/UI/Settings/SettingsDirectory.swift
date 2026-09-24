@@ -142,6 +142,7 @@ enum SettingsDirectory {
                                                       s.dockClickCycleWindows]),
                                         (.dockPreview,
                                          [FeatureStrings.windowPreviewExclusions(language).listTitle]),
+                                        (.spacesOrder, [s.spacesOrderName]),
                                        ]),
                 SettingsDirectoryItem(page: .windowLayout,
                                       title: FeatureStrings.windowLayout(language).title,

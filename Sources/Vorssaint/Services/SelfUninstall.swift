@@ -52,7 +52,9 @@ enum SelfUninstall {
                 return
             }
             DispatchQueue.global(qos: .userInitiated).async {
-                guard detachFromSystem() else {
+                // The Space arrangement marker is deleted with the preferences
+                // below, so the system setting has to be put back before they go.
+                guard SpacesOrderHold.restoreForRemoval(), detachFromSystem() else {
                     DispatchQueue.main.async {
                         BrightnessService.shared.resumeInputTaps()
                         onFailure()

@@ -37,6 +37,7 @@ struct SwitcherSettings: View {
     @AppStorage(DefaultsKey.dockClickMinimize) private var dockClickMinimize = false
     @AppStorage(DefaultsKey.dockClickHide) private var dockClickHide = false
     @AppStorage(DefaultsKey.dockClickCycleWindows) private var dockClickCycleWindows = false
+    @AppStorage(DefaultsKey.spacesOrderEnabled) private var spacesOrderEnabled = false
     @AppStorage(DefaultsKey.minimalWindowPreviews) private var minimalPreviews = false
     @AppStorage(DefaultsKey.previewSize) private var previewSize = "normal"
 
@@ -81,6 +82,10 @@ struct SwitcherSettings: View {
                 if AppFeature.dockClick.isAvailable {
                     dockClickCard
                         .settingsSectionAnchor(.dockClick, cornerRadius: 16)
+                }
+                if AppFeature.spacesOrder.isAvailable {
+                    spacesOrderCard
+                        .settingsSectionAnchor(.spacesOrder, cornerRadius: 16)
                 }
                 if AppFeature.switcher.isAvailable || AppFeature.dockPreview.isAvailable {
                     previewsCard
@@ -404,6 +409,19 @@ struct SwitcherSettings: View {
                     .labelsHidden()
                     .onChange(of: dockClickCycleWindows) { _, _ in
                         DockClickService.shared.syncWithPreferences()
+                    }
+            }
+        }
+    }
+
+    private var spacesOrderCard: some View {
+        SettingsCard {
+            SettingsRow(symbol: "rectangle.split.3x1", title: l10n.s.spacesOrderName,
+                        caption: l10n.s.spacesOrderCaption) {
+                Toggle(l10n.s.spacesOrderName, isOn: $spacesOrderEnabled)
+                    .labelsHidden()
+                    .onChange(of: spacesOrderEnabled) { _, _ in
+                        SpacesOrderHold.shared.syncWithPreferences()
                     }
             }
         }
