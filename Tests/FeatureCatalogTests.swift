@@ -386,7 +386,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 73, "feature catalog has 73 features")
+        suite.expect(AppFeature.allCases.count == 74, "feature catalog has 74 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -395,7 +395,7 @@ enum FeatureCatalogTests {
             "mouseClickDebounce", "keyboardDebounce", "textSnippets", "superKey", "quitWindowProtection",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
-            "mixer", "soundOutputSwitcher", "micMute", "musicBlock",
+            "mixer", "soundOutputSwitcher", "audioPriority", "micMute", "musicBlock",
             "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
@@ -527,10 +527,11 @@ enum FeatureCatalogTests {
                 && (AppFeature.availabilityDefaults[AppFeature.portManager.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.spacesOrder.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.wallpaper.availabilityKey] as? Bool) == false
+                && (AppFeature.availabilityDefaults[AppFeature.audioPriority.availabilityKey] as? Bool) == false
                 && AppFeature.allCases.filter {
                     $0 != .focusFollowsMouse && $0 != .fanControl && $0 != .diskImageInstaller
-                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager
-                        && $0 != .spacesOrder && $0 != .wallpaper
+                        && $0 != .killProcess && $0 != .scrollHorizontal && $0 != .portManager && $0 != .wallpaper
+                        && $0 != .audioPriority && $0 != .spacesOrder
                 }.allSatisfy {
                     (AppFeature.availabilityDefaults[$0.availabilityKey] as? Bool) == true
                 },
@@ -1536,11 +1537,13 @@ enum FeatureCatalogTests {
                 case .tr: return .tr
                 case .ru: return .ru
                 case .es: return .es
+                case .sk: return .sk
                 case .de: return .de
                 case .fr: return .fr
                 case .it: return .it
                 case .ja: return .ja
                 case .ko: return .ko
+                case .uk: return .uk
                 case .zhHans: return .zhHans
                 case .zhTW: return .zhTW
                 case .zhHK: return .zhHK
@@ -1670,6 +1673,26 @@ enum FeatureCatalogTests {
                                       forKey: DefaultsKey.windowGestureEnabled)
         } else {
             UserDefaults.standard.removeObject(forKey: DefaultsKey.windowGestureEnabled)
+        }
+        let radialMenuEnergyKeys = [DefaultsKey.radialMenuProfiles, DefaultsKey.radialMenuMouseButton]
+        let previousRadialMenuEnergy = radialMenuEnergyKeys.map { UserDefaults.standard.object(forKey: $0) }
+        func radialMenuEnergy(_ profiles: [RadialMenuProfile]?,
+                              legacyButton: RadialMenuMouseTrigger) -> FeatureEnergyProfile {
+            UserDefaults.standard.set(profiles.flatMap(RadialMenuSupport.encodeProfiles),
+                                      forKey: DefaultsKey.radialMenuProfiles)
+            UserDefaults.standard.set(legacyButton.rawValue, forKey: DefaultsKey.radialMenuMouseButton)
+            return AppFeature.radialMenu.energyProfile
+        }
+        suite.expect(radialMenuEnergy([RadialMenuProfile(mouseButton: RadialMenuMouseTrigger.back.rawValue)],
+                                      legacyButton: .off) == .mouse
+                && radialMenuEnergy([RadialMenuProfile(trackpadTap: true)], legacyButton: .off) == .mouse
+                && radialMenuEnergy([RadialMenuProfile()], legacyButton: .back) == .idle,
+               "radial menu energy follows the saved profiles and their trackpad tap, not the pre-profile button")
+        suite.expect(radialMenuEnergy(nil, legacyButton: .back) == .mouse
+                && radialMenuEnergy(nil, legacyButton: .off) == .idle,
+               "without saved profiles the pre-profile button still decides radial menu energy")
+        for (key, value) in zip(radialMenuEnergyKeys, previousRadialMenuEnergy) {
+            UserDefaults.standard.set(value, forKey: key)
         }
 
         // MARK: Settings page visibility

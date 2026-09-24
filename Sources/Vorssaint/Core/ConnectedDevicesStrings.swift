@@ -28,11 +28,13 @@ extension FeatureStrings {
         case .tr: return .tr
         case .ru: return .ru
         case .es: return .es
+        case .sk: return .sk
         case .de: return .de
         case .fr: return .fr
         case .it: return .it
         case .ja: return .ja
         case .ko: return .ko
+        case .uk: return .uk
         case .zhHans: return .zhHans
         case .zhHK: return .zhHK
         case .zhTW: return .zhTW
@@ -90,6 +92,15 @@ private extension ConnectedDevicesFeatureStrings {
         oneConnected: "1 dispositivo conectado",
         devicesConnectedFormat: "%d dispositivos conectados"
     )
+    static let sk = ConnectedDevicesFeatureStrings(
+        title: "Pripojené zariadenia",
+        hubDescription: "Počíta pripojené externé zariadenia USB",
+        noDevices: "Nie sú pripojené žiadne externé zariadenia",
+        unnamedDevice: "Zariadenie USB",
+        menuBarLabel: "USB",
+        oneConnected: "1 pripojené zariadenie",
+        devicesConnectedFormat: "Pripojené zariadenia: %d"
+    )
 
     static let de = ConnectedDevicesFeatureStrings(
         title: "Verbundene Geräte",
@@ -139,6 +150,15 @@ private extension ConnectedDevicesFeatureStrings {
         menuBarLabel: "USB",
         oneConnected: "기기 1개 연결됨",
         devicesConnectedFormat: "기기 %d개 연결됨"
+    )
+    static let uk = ConnectedDevicesFeatureStrings(
+        title: "Підключені пристрої",
+        hubDescription: "Підраховує підключені зовнішні USB-пристрої",
+        noDevices: "Немає підключених зовнішніх пристроїв",
+        unnamedDevice: "USB-пристрій",
+        menuBarLabel: "USB",
+        oneConnected: "Підключено 1 пристрій",
+        devicesConnectedFormat: "Підключено пристроїв: %d"
     )
 
     static let zhHans = ConnectedDevicesFeatureStrings(

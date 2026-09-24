@@ -655,7 +655,7 @@ enum ShelfFeatureTests {
                                                  notePlural: "%d notes",
                                                  linkSingular: "%d link", linkFew: "%d links",
                                                  linkPlural: "%d links",
-                                                 usesFewForm: false)
+                                                 agreement: .oneAndMany)
         // Russian agrees a noun with the number in front of it three ways, and
         // the rule is the number's last digits, not its size: 1 and 21 take the
         // first, 2 and 22 the middle, 11 and 25 the last. A two-way choice put
@@ -669,7 +669,7 @@ enum ShelfFeatureTests {
                                                 notePlural: "many",
                                                 linkSingular: "one", linkFew: "few",
                                                 linkPlural: "many",
-                                                usesFewForm: true)
+                                                agreement: .byLastDigits)
         for (count, wanted) in [(1, ShelfTooltipStrings.Form.one), (2, .few), (4, .few), (5, .many),
                                 (11, .many), (12, .many), (14, .many), (15, .many),
                                 (21, .one), (22, .few), (25, .many), (101, .one), (111, .many)] {
@@ -681,8 +681,31 @@ enum ShelfFeatureTests {
             suite.expect(tooltipStrings.form(for: count) == wanted,
                    "a language without a middle form still only chooses between one and many at \(count)")
         }
-        suite.expect(AppLanguage.allCases.filter(\.usesFewCountForm) == [.ru],
-               "Russian is the one language of the thirteen that asks for the middle form")
+        // Slovak has the same three forms but reads the whole number, not its
+        // last digits: 21 and 22 stay with the last form, where Russian moves
+        // them back to the first and the middle. Borrowing the Russian rule
+        // put "21 súbor" and "22 súbory" on screen.
+        let slovakStrings = ShelfTooltipStrings(itemsFormat: "many", itemsFew: "few",
+                                                imageSingular: "one", imageFew: "few",
+                                                imagePlural: "many",
+                                                fileSingular: "one", fileFew: "few",
+                                                filePlural: "many",
+                                                noteSingular: "one", noteFew: "few",
+                                                notePlural: "many",
+                                                linkSingular: "one", linkFew: "few",
+                                                linkPlural: "many",
+                                                agreement: .byWholeNumber)
+        for (count, wanted) in [(1, ShelfTooltipStrings.Form.one), (2, .few), (4, .few), (5, .many),
+                                (11, .many), (14, .many), (21, .many), (22, .many),
+                                (25, .many), (101, .many), (111, .many)] {
+            suite.expect(slovakStrings.form(for: count) == wanted,
+                   "a language that reads the whole number asks for the right form at \(count)")
+        }
+        suite.expect(AppLanguage.allCases.filter { $0.countAgreement != .oneAndMany } == [.ru, .sk, .uk]
+               && AppLanguage.ru.countAgreement == .byLastDigits
+               && AppLanguage.uk.countAgreement == .byLastDigits
+               && AppLanguage.sk.countAgreement == .byWholeNumber,
+               "Russian, Slovak and Ukrainian are the three languages of the fifteen that ask for the middle form, each by its own rule")
 
         expectEqual(ShelfTooltipSupport.text(forFileNamed: "risaPOGCHAMP.gif", resolvedKind: "GIF Image"),
                     "risaPOGCHAMP.gif\nGIF Image",
@@ -815,5 +838,19 @@ enum ShelfFeatureTests {
                 && pastRestoreGuard[1].contains("sweepOwnedFiles("),
                "restore sweeps the shelf's payload files only for a store it read whole")
 
+        // Dragging selected text brings the Shelf's pill in. A window a tiling
+        // window manager tracks would list this app on the current space.
+        let overlay = OverlayPanel(contentRect: CGRect(x: 0, y: 0, width: 200, height: 40),
+                                   styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        suite.expect(overlay.accessibilitySubrole() == .unknown,
+               "a floating overlay describes itself as an undescribed window, so window managers skip it")
+        suite.expect(overlay.accessibilityRole() == .window && overlay.isAccessibilityElement(),
+               "a floating overlay stays an accessible window for assistive technology")
+        let tooltipSource = (try? String(
+            contentsOfFile: "Sources/Vorssaint/UI/Shelf/ShelfTooltipPopover.swift", encoding: .utf8)) ?? ""
+        suite.expect(shelfServiceSource.contains("class KeyableShelfPanel: OverlayPanel")
+                && !shelfServiceSource.contains("NSPanel(contentRect")
+                && tooltipSource.contains("OverlayPanel(contentRect") && !tooltipSource.contains("NSPanel(contentRect"),
+               "every Shelf window, the pill, card, edge peek and item tooltip, is a floating overlay")
     }
 }
