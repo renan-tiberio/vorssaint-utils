@@ -139,7 +139,7 @@ extension AppFeature {
         case .mouseAcceleration: return "cursorarrow.rays"
         case .mouseNavigation: return "arrow.left.arrow.right"
         case .mouseButtonShortcuts: return "button.programmable"
-        case .middleClick: return "computermouse"
+        case .middleClick: return "hand.tap"
         case .keyboardDebounce: return "keyboard"
         case .textSnippets: return "text.append"
         case .superKey:
@@ -411,6 +411,9 @@ extension AppFeature {
                         && boolFor(DefaultsKey.brightnessControlEnabled))
                     || (boolFor(DefaultsKey.notchClipboardWindow) && isAvailable(.clipboardHistory))
             case (.radialMenu, .accessibility):
+                if let profiles = dataFor(DefaultsKey.radialMenuProfiles) {
+                    return RadialMenuSupport.needsAccessibility(RadialMenuSupport.decodeProfiles(profiles))
+                }
                 return RadialMenuSupport.needsAccessibility(
                     RadialMenuSupport.decode(dataFor(DefaultsKey.radialMenuItems)))
                     || RadialMenuMouseTrigger.sanitized(

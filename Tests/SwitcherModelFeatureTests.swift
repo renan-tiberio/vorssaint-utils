@@ -556,6 +556,19 @@ enum SwitcherModelFeatureTests {
                                                               windowSpaces: []),
                "App Switcher keeps only hidden-app surfaces assigned to a real desktop")
 
+        // MARK: Hidden apps follow the minimized-windows placement (issue #1512)
+        suite.expect(hiddenAppWindow.isMinimizedOrAppHidden
+               && SwitcherItem.appOnly(appName: "Primary", pid: 101,
+                                       isAppHidden: true).isMinimizedOrAppHidden
+               && embeddedWindow.withMinimized(true).isMinimizedOrAppHidden
+               && !embeddedWindow.isMinimizedOrAppHidden,
+               "the minimized-windows placement sets aside an app hidden with Cmd+H exactly as it does a minimized window")
+        let placementCode = (try? String(
+            contentsOfFile: "Sources/Vorssaint/Services/Switcher/WindowEnumerator.swift",
+            encoding: .utf8)) ?? ""
+        suite.expect(placementCode.contains(".isMinimizedOrAppHidden"),
+               "window enumeration decides the minimized-windows placement through the shared predicate")
+
         // Real parked windows remain ordered in; a dismissed surface can
         // retain the same desktop assignment but is explicitly ordered out.
         for visibleSpaces: Set<UInt64> in [[1], [2]] {
@@ -1696,6 +1709,13 @@ enum SwitcherModelFeatureTests {
                "URL cleaner clipboard watching is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.windowMaximizeEnabled] as? Bool == false,
                "green button maximize override is opt-in")
+        suite.expect(WindowMaximizerSupport.excludes(bundleIdentifier: "com.example.game",
+                                                     excludedBundleIdentifiers: [" com.example.game "])
+                && !WindowMaximizerSupport.excludes(bundleIdentifier: "com.example.editor",
+                                                    excludedBundleIdentifiers: ["com.example.game"])
+                && !WindowMaximizerSupport.excludes(bundleIdentifier: nil,
+                                                    excludedBundleIdentifiers: ["com.example.game"]),
+               "only apps on the exception list keep the native green button")
         suite.expect(registeredDefaults[DefaultsKey.keyboardDebounceEnabled] as? Bool == false,
                "keyboard debounce is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.keyboardDebounceWindowMs] as? Int == 5,
@@ -2026,6 +2046,31 @@ enum SwitcherModelFeatureTests {
                                                                mustShowForSignal: false),
                "the whole-item hiding only applies to the separate-items mode")
 
+        // Dynamic Island may take the icon's place, but only while it runs:
+        // with the island off or removed, nothing else on screen would lead
+        // back to the app.
+        suite.expect(registeredDefaults[DefaultsKey.notchHidesMenuBarIcon] as? Bool == false,
+               "Dynamic Island only takes the icon's place when asked")
+        let islandIconSuite = "com.vorssaint.tests.islandMenuBarIcon"
+        if let islandDefaults = UserDefaults(suiteName: islandIconSuite) {
+            islandDefaults.removePersistentDomain(forName: islandIconSuite)
+            defer { islandDefaults.removePersistentDomain(forName: islandIconSuite) }
+            islandDefaults.set(true, forKey: AppFeature.notch.availabilityKey)
+            islandDefaults.set(true, forKey: DefaultsKey.notchEnabled)
+            suite.expect(!MenuBarSpacingSupport.islandHidesStatusIcon(in: islandDefaults),
+                   "a running island leaves the icon alone until asked")
+            islandDefaults.set(true, forKey: DefaultsKey.notchHidesMenuBarIcon)
+            suite.expect(MenuBarSpacingSupport.islandHidesStatusIcon(in: islandDefaults),
+                   "a running island takes the icon's place when asked")
+            islandDefaults.set(false, forKey: DefaultsKey.notchEnabled)
+            suite.expect(!MenuBarSpacingSupport.islandHidesStatusIcon(in: islandDefaults),
+                   "switching the island off brings the icon back")
+            islandDefaults.set(true, forKey: DefaultsKey.notchEnabled)
+            islandDefaults.set(false, forKey: AppFeature.notch.availabilityKey)
+            suite.expect(!MenuBarSpacingSupport.islandHidesStatusIcon(in: islandDefaults),
+                   "removing the island in the hub brings the icon back")
+        }
+
         // A pinned metric that momentarily has nothing to show keeps its item
         // instead of being taken away and put back every tick.
         suite.expect(MenuBarSpacingSupport.keepsMetricStatusItem(hasRenderedTitle: true, itemExists: false),
@@ -2194,6 +2239,21 @@ enum SwitcherModelFeatureTests {
             .components(separatedBy: "\n    }").first ?? "")
         suite.expect(iconIsOnScreenCode.contains("StatusItemPlacementSupport.isPlacedStatusFrame("),
                "the recovery judges placement by the menu bar band, not by screen intersection")
+        suite.expect(iconIsOnScreenCode.contains("statusItem.isVisible == true"),
+               "a hidden item never counts as on screen, whatever frame its window kept")
+        // An item the app keeps out of the bar for Dynamic Island is not
+        // missing, and a rebuild on reopen could strand the panel's anchor.
+        let reopenCode = stripCommentLines((statusAnchorAppDelegateSource
+            .components(separatedBy: "func applicationShouldHandleReopen(").last ?? "")
+            .components(separatedBy: "\n    }").first ?? "")
+        suite.expect(reopenCode.contains("mainItemHiddenByChoice != true, !iconIsOnScreen()"),
+               "reopening the app leaves an item hidden by choice alone and opens Settings")
+        let reshowCode = stripCommentLines((statusAnchorAppDelegateSource
+            .components(separatedBy: "func reshowStatusItem() {").last ?? "")
+            .components(separatedBy: "\n    }").first ?? "")
+        suite.expect(reshowCode.contains("DefaultsKey.menuBarHideIconWithMetrics")
+                     && reshowCode.contains("DefaultsKey.notchHidesMenuBarIcon"),
+               "Show menu bar icon turns off both ways of hiding it")
 
         // macOS 26 lets the person switch an app's menu bar items off per app,
         // and remembers the choice in Control Center's group container. The
@@ -2833,7 +2893,9 @@ enum SwitcherModelFeatureTests {
                                                    movingDown: false) == 1,
                "App Switcher up navigation keeps its existing column behavior")
         let previousPreviewSize = UserDefaults.standard.object(forKey: DefaultsKey.previewSize)
+        let previousSwitcherPreviewSize = UserDefaults.standard.object(forKey: DefaultsKey.switcherPreviewSize)
         UserDefaults.standard.set("small", forKey: DefaultsKey.previewSize)
+        UserDefaults.standard.set("small", forKey: DefaultsKey.switcherPreviewSize)
         suite.expectClose(Double(PreviewSizing.scale), 0.75,
                     "Preview sizing accepts the Small option")
         suite.expectClose(Double(SwitcherIconRowLayout.scale), 0.75,
@@ -2855,14 +2917,16 @@ enum SwitcherModelFeatureTests {
         // The grid card's chrome is two lines of text that do not change with
         // the preview size. The card does, so the thumbnail has to take every
         // point the chrome leaves, at whichever size is stored.
-        let smallGridScale = PreviewSizing.scale
+        let smallGridScale = PreviewSizing.switcherScale
         let smallGridCardHeight = SwitcherGridCard.height
         let smallGridCardChrome = smallGridCardHeight - SwitcherGridCard.thumbnailHeight
         suite.expect(SwitcherGridCard.fallbackIconSize < SwitcherGridCard.thumbnailHeight,
                "App Switcher Small keeps the stand-in app icon inside its grid card thumbnail")
-        UserDefaults.standard.set("xlarge", forKey: DefaultsKey.previewSize)
+        UserDefaults.standard.set("xlarge", forKey: DefaultsKey.switcherPreviewSize)
+        suite.expect(SwitcherIconRowLayout.scale > 1 && DockPreviewSupport.cardSpacing == 6,
+               "the switcher and Dock Preview each follow their own preview size")
         suite.expectClose(Double(SwitcherGridCard.height / smallGridCardHeight),
-                    Double(PreviewSizing.scale / smallGridScale),
+                    Double(PreviewSizing.switcherScale / smallGridScale),
                     "an App Switcher grid card's height follows the preview size")
         suite.expectClose(Double(SwitcherGridCard.height - SwitcherGridCard.thumbnailHeight),
                     Double(smallGridCardChrome),
@@ -2900,6 +2964,23 @@ enum SwitcherModelFeatureTests {
             UserDefaults.standard.set(previousPreviewSize, forKey: DefaultsKey.previewSize)
         } else {
             UserDefaults.standard.removeObject(forKey: DefaultsKey.previewSize)
+        }
+        if let previousSwitcherPreviewSize {
+            UserDefaults.standard.set(previousSwitcherPreviewSize, forKey: DefaultsKey.switcherPreviewSize)
+        } else {
+            UserDefaults.standard.removeObject(forKey: DefaultsKey.switcherPreviewSize)
+        }
+        let previewSizeSuite = "com.vorssaint.tests.switcher-preview-size.\(UUID().uuidString)"
+        if let previewSizeDefaults = UserDefaults(suiteName: previewSizeSuite) {
+            previewSizeDefaults.set("large", forKey: DefaultsKey.previewSize)
+            Defaults.migrateSwitcherPreviewSize(in: previewSizeDefaults)
+            let upgradedSwitcherSize = previewSizeDefaults.string(forKey: DefaultsKey.switcherPreviewSize)
+            previewSizeDefaults.set("small", forKey: DefaultsKey.switcherPreviewSize)
+            Defaults.migrateSwitcherPreviewSize(in: previewSizeDefaults)
+            suite.expect(upgradedSwitcherSize == "large"
+                    && previewSizeDefaults.string(forKey: DefaultsKey.switcherPreviewSize) == "small",
+                   "an upgrade keeps the switcher at the preview size it shared with Dock Preview, once")
+            previewSizeDefaults.removePersistentDomain(forName: previewSizeSuite)
         }
         let defaultSwitcherHints = SwitcherSupport.shortcutHints(for: .switcherDefault,
                                                                  windowShortcut: .switcherWindowDefault)
@@ -4180,16 +4261,16 @@ enum SwitcherModelFeatureTests {
         suite.expect(groupedIconLayout.previewFitsWithoutScrolling(cardCount: 2),
                "App Switcher shows a pair of windows even with a short icon row")
         do {
-            let savedPreviewSize = UserDefaults.standard.object(forKey: DefaultsKey.previewSize)
+            let savedPreviewSize = UserDefaults.standard.object(forKey: DefaultsKey.switcherPreviewSize)
             defer {
                 if let savedPreviewSize {
-                    UserDefaults.standard.set(savedPreviewSize, forKey: DefaultsKey.previewSize)
+                    UserDefaults.standard.set(savedPreviewSize, forKey: DefaultsKey.switcherPreviewSize)
                 } else {
-                    UserDefaults.standard.removeObject(forKey: DefaultsKey.previewSize)
+                    UserDefaults.standard.removeObject(forKey: DefaultsKey.switcherPreviewSize)
                 }
             }
             for size in Defaults.allowedPreviewSizes {
-                UserDefaults.standard.set(size, forKey: DefaultsKey.previewSize)
+                UserDefaults.standard.set(size, forKey: DefaultsKey.switcherPreviewSize)
                 for width in [640.0, 800.0, 1440.0] {
                     for hints in [false, true] {
                         let frame = CGRect(x: 0, y: 0, width: width, height: 900)

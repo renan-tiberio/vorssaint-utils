@@ -121,7 +121,8 @@ enum DefaultsKey {
     static let spacesOrderRestore = "spacesOrderRestore" // local recovery; never backed up: "absent" or "on", the mru-spaces state to put back
     static let middleClickEnabled = "middleClickEnabled"  // three-finger PHYSICAL click on the trackpad acts as a middle click
     static let middleClickTapFingers = "middleClickTapFingers"  // 0 = off (default); 3 or 4 = a light tap with that many fingers also middle-clicks (issue #161)
-    static let previewSize = "previewSize"                // app switcher + dock preview thumbnail size
+    static let previewSize = "previewSize"                // dock preview thumbnail size (once shared with the app switcher)
+    static let switcherPreviewSize = "switcherPreviewSize" // app switcher thumbnail size
     static let autoCheckUpdates = "autoCheckUpdates"
     static let includeBetaUpdates = "includeBetaUpdates"
     static let releaseNotesOnUpdate = "releaseNotesOnUpdate" // show What's New after an update
@@ -218,6 +219,7 @@ enum DefaultsKey {
     static let cleanerScheduleNotify = "cleanerScheduleNotify"
     static let cleanerLastAutoRun = "cleanerLastAutoRun"                // Double, epoch seconds
     static let cleanerLastAutoFreed = "cleanerLastAutoFreed"            // Int bytes
+    static let cleanerLastAutoFailed = "cleanerLastAutoFailed"          // Int items left in place
     // Confirmed WhatsApp downloads in the top level of ~/Downloads.
     static let whatsAppDownloadsEnabled = "whatsAppDownloadsEnabled"
     static let whatsAppDownloadsAutomaticEnabled = "whatsAppDownloadsAutomaticEnabled"
@@ -255,6 +257,7 @@ enum DefaultsKey {
     static let urlCleanerSiteParameters = "urlCleanerSiteParameters"       // host|name pairs added to one site
     static let urlCleanerDisabledParameters = "urlCleanerDisabledParameters" // built-in host|name pairs switched off
     static let windowMaximizeEnabled = "windowMaximizeEnabled"
+    static let windowMaximizeExcludedApps = "windowMaximizeExcludedApps" // [bundle id] whose green button stays native
     static let keyboardDebounceEnabled = "keyboardDebounceEnabled"
     static let keyboardDebounceWindowMs = "keyboardDebounceWindowMs"
     static let keyboardDebounceKeyWindows = "keyboardDebounceKeyWindows" // comma-separated keyCode:ms
@@ -372,6 +375,11 @@ enum DefaultsKey {
     static let fanControlMode = "fanControlMode"
     static let fanControlCoolingLevel = "fanControlCoolingLevel"
     static let fanControlCurves = "fanControlCurves"
+    // Re-apply the last manual speed or curve when the app opens and after wake.
+    static let fanControlResume = "fanControlResume"
+    // Machine-only: the control the user left running while resume is on,
+    // cleared when they return to System so it never outlives that choice.
+    static let fanControlResumeConfiguration = "fanControlResumeConfiguration"
     // Previous panel visibility key, read once by the migration below.
     static let monitorShowFanControlBeta = "monitorShowFanControlBeta"
     // Machine-only recovery state. A true value means the helper must confirm
@@ -553,6 +561,7 @@ enum DefaultsKey {
     static let micMuteActive = "micMuteActive"               // mic muted by the app (survives relaunch)
     static let micMuteSavedVolume = "micMuteSavedVolume"     // input volume to restore on unmute (pre 3.2.0 state)
     static let micMuteSavedVolumes = "micMuteSavedVolumes"   // [device uid: input volume] to restore on unmute
+    static let micMuteSavedChannelVolumes = "micMuteSavedChannelVolumes" // [device uid: [channel: input volume]] to restore on unmute
     static let micMuteMutedDevices = "micMuteMutedDevices"   // uids of the devices this app muted
     static let micMuteMenuBarIndicator = "micMuteMenuBarIndicator" // badge the status icon while muted
     static let quickLauncherShortcutEnabled = "quickLauncherShortcutEnabled"
@@ -605,6 +614,8 @@ enum DefaultsKey {
     static let screenshotLastTool = "screenshotLastTool"
     static let screenshotLastColor = "screenshotLastColor"
     static let screenshotLastStroke = "screenshotLastStroke"
+    static let screenshotLastTextSize = "screenshotLastTextSize"
+    static let screenshotLastBlurLevel = "screenshotLastBlurLevel"
     static let screenshotLastArrowStyle = "screenshotLastArrowStyle"
     static let screenshotLastSticker = "screenshotLastSticker"
     static let screenshotAnnotationShadows = "screenshotAnnotationShadows"
@@ -722,6 +733,7 @@ enum DefaultsKey {
     static let notchCaptureControls = "notchCaptureControls"
     static let notchQuickPanel = "notchQuickPanel"
     static let notchAppPanel = "notchAppPanel"
+    static let notchHidesMenuBarIcon = "notchHidesMenuBarIcon" // the island takes the glyph's place while it is on
     static let notchScratchpad = "notchScratchpad"
     static let notchHoverExpands = "notchHoverExpands"
     static let notchGesturesEnabled = "notchGesturesEnabled"
@@ -936,9 +948,8 @@ enum KeepAwakeActiveIcon: String, CaseIterable, Identifiable {
     }
 }
 
-/// Thumbnail size for the app switcher and Dock preview, scaled from one user
-/// preference so both grow together. Captures scale by the same factor, so
-/// larger previews stay sharp.
+/// Thumbnail size for Dock Preview and, separately, the app switcher. Captures
+/// scale by the same factor, so larger previews stay sharp.
 enum PreviewSizing {
     static func sanitized(_ value: String) -> String {
         Defaults.allowedPreviewSizes.contains(value) ? value : "normal"
@@ -955,6 +966,10 @@ enum PreviewSizing {
 
     static var scale: CGFloat {
         scale(for: UserDefaults.standard.string(forKey: DefaultsKey.previewSize) ?? "normal")
+    }
+
+    static var switcherScale: CGFloat {
+        scale(for: UserDefaults.standard.string(forKey: DefaultsKey.switcherPreviewSize) ?? "normal")
     }
 }
 
@@ -1090,6 +1105,7 @@ enum Defaults {
         DefaultsKey.middleClickEnabled: false,
         DefaultsKey.middleClickTapFingers: 0,
         DefaultsKey.previewSize: "normal",
+        DefaultsKey.switcherPreviewSize: "normal",
         DefaultsKey.autoCheckUpdates: true,
         DefaultsKey.includeBetaUpdates: false,
         DefaultsKey.releaseNotesOnUpdate: true,
@@ -1161,6 +1177,7 @@ enum Defaults {
         DefaultsKey.cleanerScheduleNotify: true,
         DefaultsKey.cleanerLastAutoRun: 0.0,
         DefaultsKey.cleanerLastAutoFreed: 0,
+        DefaultsKey.cleanerLastAutoFailed: 0,
         DefaultsKey.whatsAppDownloadsEnabled: false,
         DefaultsKey.whatsAppDownloadsAutomaticEnabled: false,
         DefaultsKey.whatsAppDownloadsCategories: "image,video,audio",
@@ -1211,6 +1228,7 @@ enum Defaults {
         DefaultsKey.notchCaptureControls: true,
         DefaultsKey.notchQuickPanel: true,
         DefaultsKey.notchAppPanel: true,
+        DefaultsKey.notchHidesMenuBarIcon: false,
         DefaultsKey.notchScratchpad: true,
         DefaultsKey.notchHoverExpands: true,
         DefaultsKey.notchGesturesEnabled: true,
@@ -1276,6 +1294,7 @@ enum Defaults {
         DefaultsKey.radialMenuMouseButton: RadialMenuMouseTrigger.off.rawValue,
         DefaultsKey.radialMenuActivationMode: RadialMenuActivationMode.pressOrHold.rawValue,
         DefaultsKey.windowMaximizeEnabled: false,
+        DefaultsKey.windowMaximizeExcludedApps: [String](),
         DefaultsKey.keyboardDebounceEnabled: false,
         DefaultsKey.keyboardDebounceWindowMs: defaultKeyboardDebounceWindowMs,
         DefaultsKey.keyboardDebounceKeyWindows: "",
@@ -1385,6 +1404,8 @@ enum Defaults {
         DefaultsKey.fanControlMode: FanControlMode.system.rawValue,
         DefaultsKey.fanControlCoolingLevel: FanControlPolicy.defaultCoolingLevel,
         DefaultsKey.fanControlCurves: FanControlConfiguration.defaultCurvesStorage,
+        DefaultsKey.fanControlResume: false,
+        DefaultsKey.fanControlResumeConfiguration: "",
         DefaultsKey.fanControlRecoveryNeeded: false,
         DefaultsKey.fanControlHelperVersion: "",
         DefaultsKey.panelNavigationEnabled: true,
@@ -1591,6 +1612,8 @@ enum Defaults {
         DefaultsKey.screenshotLastTool: "arrow",
         DefaultsKey.screenshotLastColor: "red",
         DefaultsKey.screenshotLastStroke: "medium",
+        DefaultsKey.screenshotLastTextSize: ScreenshotSupport.defaultTextSize,
+        DefaultsKey.screenshotLastBlurLevel: ScreenshotSupport.BlurStrength.defaultLevel,
         DefaultsKey.screenshotLastArrowStyle: "filled",
         DefaultsKey.screenshotLastSticker: "check",
         DefaultsKey.screenshotAnnotationShadows: false,
@@ -1664,6 +1687,7 @@ enum Defaults {
         migrateScrollInverterAxes(in: defaults)
         migrateWhatsAppDownloadsEnabled(in: defaults)
         migrateBatteryTemperatureVisibility(in: defaults)
+        migrateSwitcherPreviewSize(in: defaults)
         defaults.register(defaults: registeredDefaults)
         defaults.register(defaults: AppFeature.availabilityDefaults)
         activateBetaChannelIfRunningBeta(in: defaults)
@@ -1705,6 +1729,15 @@ enum Defaults {
         }
         defaults.set(true, forKey: DefaultsKey.brightnessDDCWriteOnlyPathsRechecked)
         defaults.removeObject(forKey: DefaultsKey.brightnessDDCWriteOnlyPaths)
+    }
+
+    /// The app switcher used to share Dock Preview's thumbnail size. Copy a
+    /// chosen size once, before defaults are registered, so neither changes
+    /// on upgrade.
+    static func migrateSwitcherPreviewSize(in defaults: UserDefaults) {
+        guard defaults.object(forKey: DefaultsKey.switcherPreviewSize) == nil,
+              let size = defaults.string(forKey: DefaultsKey.previewSize) else { return }
+        defaults.set(size, forKey: DefaultsKey.switcherPreviewSize)
     }
 
     static func migrateBatteryTemperatureVisibility(in defaults: UserDefaults) {

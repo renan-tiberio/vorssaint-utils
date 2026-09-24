@@ -185,6 +185,9 @@ enum SettingsFeatureTests {
         suite.expect(backupKeys.contains(DefaultsKey.windowPreviewExcludedApps)
                 && (Defaults.registeredDefaults[DefaultsKey.windowPreviewExcludedApps] as? [String]) == [],
                "the window preview exclusion list starts empty and travels with the settings backup")
+        suite.expect(backupKeys.contains(DefaultsKey.windowMaximizeExcludedApps)
+                && (Defaults.registeredDefaults[DefaultsKey.windowMaximizeExcludedApps] as? [String]) == [],
+               "the green button exception list starts empty and travels with the settings backup")
         suite.expect(backupKeys.contains(DefaultsKey.panelShowToggles)
                 && backupKeys.contains(DefaultsKey.panelToggleOrder)
                 && backupKeys.contains(DefaultsKey.panelToggleDarkMode)
@@ -196,9 +199,13 @@ enum SettingsFeatureTests {
                 && backupKeys.contains(DefaultsKey.fanControlCoolingLevel)
                 && backupKeys.contains(DefaultsKey.fanControlCurves)
                 && backupKeys.contains(DefaultsKey.menuBarFanSpeed)
+                && backupKeys.contains(DefaultsKey.fanControlResume)
                 && !backupKeys.contains(DefaultsKey.fanControlRecoveryNeeded)
-                && !backupKeys.contains(DefaultsKey.fanControlHelperVersion),
+                && !backupKeys.contains(DefaultsKey.fanControlHelperVersion)
+                && !backupKeys.contains(DefaultsKey.fanControlResumeConfiguration),
                "fan display and cooling preferences travel while helper recovery state stays on one Mac")
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.fanControlResume] as? Bool == false,
+               "resuming fan control after a restart or sleep is opt-in")
         suite.expect(backupKeys.contains(DefaultsKey.screenshotSharingEnabled),
                "the temporary screenshot links preference travels with settings backup")
         suite.expect(!backupKeys.contains(DefaultsKey.clipboardHistoryEntries)
@@ -206,6 +213,7 @@ enum SettingsFeatureTests {
                 && !backupKeys.contains(DefaultsKey.sleepDisabledFlag)
                 && !backupKeys.contains(DefaultsKey.micMuteActive)
                 && !backupKeys.contains(DefaultsKey.micMuteSavedVolumes)
+                && !backupKeys.contains(DefaultsKey.micMuteSavedChannelVolumes)
                 && !backupKeys.contains(DefaultsKey.micMuteMutedDevices)
                 && !backupKeys.contains(DefaultsKey.cleanerLastAutoRun)
                 && !backupKeys.contains(DefaultsKey.statusItemPlacementGeneration)

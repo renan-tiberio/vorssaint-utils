@@ -314,10 +314,10 @@ enum SpacesOrderTests {
         suite.expect(feature.group == .windowsDock && feature.enabledKeys == [DefaultsKey.spacesOrderEnabled]
                      && feature.permissions.isEmpty && feature.energyProfile == .idle && !feature.isBeta,
                      "fixed Space order is an idle windows-and-Dock feature that needs no permission")
-        suite.expect(feature.settingsDestination == FeatureSettingsDestination(.switcher, sectionAnchor: .spacesOrder)
-                     && SettingsSectionAnchor.spacesOrder.page == .switcher
-                     && FeatureVisibilitySupport.features(for: .switcher).contains(.spacesOrder),
-                     "fixed Space order has its own card on the Switcher page")
+        suite.expect(feature.settingsDestination == FeatureSettingsDestination(.dock, sectionAnchor: .spacesOrder)
+                     && SettingsSectionAnchor.spacesOrder.page == .dock
+                     && FeatureVisibilitySupport.features(for: .dock).contains(.spacesOrder),
+                     "fixed Space order has its own card on the Dock page")
         suite.expect(FeaturePreset.allCases.allSatisfy {
                          !$0.features.contains(.spacesOrder)
                              && !$0.enableKeys.contains(DefaultsKey.spacesOrderEnabled)
