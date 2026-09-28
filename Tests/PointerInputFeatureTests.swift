@@ -636,11 +636,17 @@ enum PointerInputFeatureTests {
             isContinuous: false, linesPerNotch: 3, carry: 0)
         suite.expect(fastNotch.delta.line == 3 && fastNotch.carry == 0 && slowNotch.delta.line == -3,
                "a fast discrete notch and a slow one are written back as the same lines")
-        suite.expect(ScrollWheelSupport.discreteTicks(line: 1, fixedPoint: 0.1) == 1
-                && ScrollWheelSupport.discreteTicks(line: -7, fixedPoint: -7.3) == -1
-                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: 0.25) == 0.25
-                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: .nan) == 0,
-               "any notch whose line count moves counts whole, however macOS scaled it; only a zero line keeps its fraction")
+        suite.expect(ScrollWheelSupport.discreteTicks(line: 1, fixedPoint: 0.1, point: 1) == 1
+                && ScrollWheelSupport.discreteTicks(line: -7, fixedPoint: -7.3, point: -73) == -1
+                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: 0.25, point: 2) == 0.25
+                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: 0, point: 10) == 1
+                && ScrollWheelSupport.discreteTicks(line: 0, fixedPoint: .nan, point: 0) == 0,
+               "a notch uses its line count, then its fraction, then points when the driver leaves both empty")
+        let pointOnlyNotch = ScrollWheelSupport.linearDelta(
+            ScrollWheelAxisDelta(line: 0, point: 10, fixedPoint: 0),
+            isContinuous: false, linesPerNotch: 3, carry: 0)
+        suite.expect(pointOnlyNotch.delta.line == 3 && pointOnlyNotch.carry == 0,
+                     "a discrete point-only wheel event is not discarded")
         var fractionCarry = 0.0
         var fractionLines: Int64 = 0
         for _ in 0..<4 {

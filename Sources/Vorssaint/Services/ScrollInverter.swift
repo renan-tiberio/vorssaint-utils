@@ -248,6 +248,11 @@ final class ScrollInverter: ObservableObject {
                 vertical: rawVertical.hasMovement ? linearVertical.delta : nil,
                 horizontal: rawHorizontal.hasMovement ? linearHorizontal.delta : nil,
                 to: event, isContinuous: traits.isContinuous)
+        } else {
+            // A fraction belongs to the active linear stream. Do not let it
+            // reappear after an excepted app or an off/uninstalled interval.
+            linearCarryVertical = 0
+            linearCarryHorizontal = 0
         }
 
         // The direction features read their own availability here: linear

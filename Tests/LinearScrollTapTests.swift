@@ -75,6 +75,10 @@ enum LinearScrollTapTests {
         suite.expect([slow, medium, fast].allSatisfy { $0.map(verticalLine) == 3 },
                      "a slow, a medium and a fast notch leave the wheel tap as the same three lines")
 
+        let pointOnly = deliver(wheel(line: 0, fixed: 0, point: 10))
+        suite.expect(pointOnly.map(verticalLine) == 3,
+                     "a discrete point-only wheel event survives the raw tap and moves one notch")
+
         configure(lines: 1)
         let fraction = deliver(wheel(line: 1, fixed: 1.5, point: 15))
         suite.expect(fraction.map(verticalLine) == 1 && fraction.map(verticalFixed) == 1,
@@ -87,6 +91,24 @@ enum LinearScrollTapTests {
         suite.expect(delivered.map(verticalLine).reduce(0, +) == 3
                         && delivered.allSatisfy { verticalLine($0) != 0 },
                      "four quarter notches add up to one notch, and a quarter that moves no whole line is held back")
+
+        configure()
+        let afterException = Inverter()
+        _ = deliver(wheel(line: 0, fixed: 0.25, point: 0), through: afterException)
+        Exceptions.shared.excepted = [.linearScroll]
+        _ = deliver(wheel(line: 1, fixed: 1, point: 10), through: afterException)
+        Exceptions.shared.excepted = []
+        suite.expect(deliver(wheel(line: 0, fixed: 0.25, point: 0), through: afterException) == nil,
+                     "a fractional notch does not carry through an excepted app")
+
+        configure()
+        let afterOff = Inverter()
+        _ = deliver(wheel(line: 0, fixed: 0.25, point: 0), through: afterOff)
+        configure(linear: false)
+        _ = deliver(wheel(line: 1, fixed: 1, point: 10), through: afterOff)
+        configure()
+        suite.expect(deliver(wheel(line: 0, fixed: 0.25, point: 0), through: afterOff) == nil,
+                     "a fractional notch does not carry through a disabled interval")
 
         configure()
         Exceptions.shared.excepted = [.linearScroll]

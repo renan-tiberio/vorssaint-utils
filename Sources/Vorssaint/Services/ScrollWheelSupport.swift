@@ -281,9 +281,12 @@ extension ScrollWheelSupport {
     /// a tenth of a line while its line count still reads one. Any event whose
     /// line count moves is therefore one whole notch; only a high-resolution
     /// wheel's fraction, which leaves the line count at zero, stays a fraction.
-    static func discreteTicks(line: Int64, fixedPoint: Double) -> Double {
+    /// Some drivers provide only points, so use those when both line fields
+    /// are empty rather than dropping a real wheel event.
+    static func discreteTicks(line: Int64, fixedPoint: Double, point: Int64) -> Double {
         if line != 0 { return line > 0 ? 1 : -1 }
-        return fixedPoint.isFinite ? fixedPoint : 0
+        if fixedPoint.isFinite, fixedPoint != 0 { return fixedPoint }
+        return Double(point) / pointsPerLine
     }
 
     /// The notch count of a continuous wheel event, in lines. The point field
@@ -315,7 +318,7 @@ extension ScrollWheelSupport {
                             carry: Double) -> (delta: ScrollWheelAxisDelta, carry: Double) {
         let ticks = isContinuous
             ? continuousTicks(fixedPointDelta: delta.fixedPoint, pointDelta: Double(delta.point))
-            : discreteTicks(line: delta.line, fixedPoint: delta.fixedPoint)
+            : discreteTicks(line: delta.line, fixedPoint: delta.fixedPoint, point: delta.point)
         let lines = linearLines(ticks: ticks, linesPerNotch: linesPerNotch)
         let kept = SmoothScrollSupport.carry(carry, continuing: lines)
         if isContinuous {

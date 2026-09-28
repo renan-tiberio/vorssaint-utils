@@ -343,8 +343,10 @@ final class SmoothScrollService: ObservableObject {
             // high-resolution wheels report while the integer field reads 0.
             let verticalLine = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
             let verticalFixedPoint = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+            let verticalPoint = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
             let horizontalLine = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
             let horizontalFixedPoint = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+            let horizontalPoint = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
             var verticalTicks = SmoothScrollSupport.ticks(line: Double(verticalLine),
                                                           fixedPoint: verticalFixedPoint)
             var horizontalTicks = SmoothScrollSupport.ticks(line: Double(horizontalLine),
@@ -353,10 +355,14 @@ final class SmoothScrollService: ObservableObject {
             // them to, so a slow notch weighs as much as a fast one.
             if let linearLinesPerNotch {
                 verticalTicks = ScrollWheelSupport.linearLines(
-                    ticks: ScrollWheelSupport.discreteTicks(line: verticalLine, fixedPoint: verticalFixedPoint),
+                    ticks: ScrollWheelSupport.discreteTicks(line: verticalLine,
+                                                            fixedPoint: verticalFixedPoint,
+                                                            point: verticalPoint),
                     linesPerNotch: linearLinesPerNotch)
                 horizontalTicks = ScrollWheelSupport.linearLines(
-                    ticks: ScrollWheelSupport.discreteTicks(line: horizontalLine, fixedPoint: horizontalFixedPoint),
+                    ticks: ScrollWheelSupport.discreteTicks(line: horizontalLine,
+                                                            fixedPoint: horizontalFixedPoint,
+                                                            point: horizontalPoint),
                     linesPerNotch: linearLinesPerNotch)
             }
             let axes = SmoothScrollSupport.axes(
