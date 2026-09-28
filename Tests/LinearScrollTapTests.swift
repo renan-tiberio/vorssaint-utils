@@ -143,6 +143,20 @@ enum LinearScrollTapTests {
                      "a modifier-held notch is capped before it is turned sideways")
 
         configure()
+        let nativeZoom = deliver(wheel(line: 4, fixed: 4, point: 40, flags: .maskControl))
+        suite.expect(nativeZoom.map(verticalLine) == 4 && nativeZoom.map(verticalFixed) == 4,
+                     "Control-wheel keeps native zoom when Control is not the horizontal shortcut")
+        configure(sidewaysKey: .control)
+        let controlSideways = deliver(wheel(line: 4, fixed: 4, point: 40, flags: .maskControl))
+        suite.expect(controlSideways.map(verticalLine) == 0
+                        && controlSideways?.getIntegerValueField(.scrollWheelEventDeltaAxis2) == 3,
+                     "the explicit Control-to-horizontal shortcut still receives the fixed notch")
+        Exceptions.shared.excepted = [.scrollDirection]
+        let exceptedZoom = deliver(wheel(line: 4, fixed: 4, point: 40, flags: .maskControl))
+        suite.expect(exceptedZoom.map(verticalLine) == 4,
+                     "a direction exception also preserves Control-wheel zoom")
+
+        configure()
         let continuous = deliver(wheel(continuous: true, line: 0, fixed: 4, point: 40))
         suite.expect(continuous?.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == 30
                         && continuous.map(verticalFixed) == 3,

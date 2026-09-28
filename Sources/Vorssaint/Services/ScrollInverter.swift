@@ -207,7 +207,20 @@ final class ScrollInverter: ObservableObject {
         else { return Unmanaged.passUnretained(event) }
 
         let defaults = UserDefaults.standard
-        if let linesPerNotch = ScrollWheelSupport.linearLinesPerNotch(
+        let direction = ScrollDirectionPreferences(defaults: defaults)
+        let directionApplies = direction.isEnabled
+            && !MouseAppExceptions.shared.excludesPointerTarget(
+                .scrollDirection, at: event.location, sourceProcessID: sourceProcessID)
+        // Control-wheel is native zoom. Only the explicit Control-to-horizontal
+        // shortcut turns it into scrolling; a direction exception or one of
+        // our own windows leaves it as zoom too.
+        let controlRedirects = directionApplies
+            && direction.horizontalModifier == .control
+            && event.flags.intersection([.maskShift, .maskAlternate, .maskControl, .maskCommand]) == .maskControl
+            && ScrollWheelSupport.isVerticalOnly(event)
+            && !ScrollWheelTarget.shared.contains(event.location)
+        let nativeZoom = event.flags.contains(.maskControl) && !controlRedirects
+        if let linesPerNotch = nativeZoom ? nil : ScrollWheelSupport.linearLinesPerNotch(
             defaults: defaults,
             isAvailable: AppFeature.linearScroll.isAvailable,
             isExcepted: {
@@ -258,12 +271,7 @@ final class ScrollInverter: ObservableObject {
         // The direction features read their own availability here: linear
         // scrolling may be what keeps this tap alive, so the tap running says
         // nothing about whether the wheel should be turned or redirected.
-        let direction = ScrollDirectionPreferences(defaults: defaults)
-        if direction.isEnabled,
-           !MouseAppExceptions.shared.excludesPointerTarget(
-                .scrollDirection,
-                at: event.location,
-                sourceProcessID: sourceProcessID) {
+        if directionApplies {
             ScrollWheelSupport.applyDirection(
                 to: event, isContinuous: traits.isContinuous,
                 invertVertical: direction.invertVertical,
