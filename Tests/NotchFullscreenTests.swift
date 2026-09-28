@@ -53,13 +53,17 @@ enum NotchFullscreenTests {
     }
     class State {
         var running = true, suspended = false, hiddenInFullscreen = false
+        var hoverEmphasized = false
         var panel: Bool? = true
+        var windowHost: Host? = Host()
+        struct Host { var isConcealedForMissionControl = false }
         var screenUpdate: (() -> Void)?
         var heldDrag = true, dragPlaceholder = true, noticeExpanded = true
         var hoverWork: DispatchWorkItem?, noticeWork: DispatchWorkItem?
         var notice: Bool? = true
-        var collapses = 0, cancellations = 0, screenUpdates = 0, consumerSyncs = 0, refreshes = 0
+        var collapses = 0, cancellations = 0, screenUpdates = 0, consumerSyncs = 0, refreshes = 0, departures = 0
         func cancelCaptureControls() { cancellations += 1 }
+        func endDeparture() { departures += 1 }
         func collapse() { collapses += 1 }
         func updateScreen() { screenUpdates += 1; screenUpdate?() }
         func syncVisibleConsumers() { consumerSyncs += 1 }
@@ -100,6 +104,7 @@ enum NotchFullscreenTests {
         suite.expect(!service.hiddenInFullscreen && SpaceWindowBridge.reads == 0,
                      "the opt-in preference avoids Space queries while disabled")
         UserDefaults.standard.enabled = true
+        service.hoverEmphasized = true
         service.hoverWork = DispatchWorkItem {}
         service.noticeWork = DispatchWorkItem {}
         let hover = service.hoverWork!, notice = service.noticeWork!
@@ -107,16 +112,17 @@ enum NotchFullscreenTests {
         service.updateFullscreenVisibility(displayID: 2)
         suite.expect(service.hiddenInFullscreen && service.collapses == 1 && service.cancellations == 1
                      && !service.heldDrag && !service.dragPlaceholder && service.notice == nil
-                     && hover.isCancelled && notice.isCancelled,
-                     "entering fullscreen clears pending reveals, banners, drags and capture controls")
+                     && !service.hoverEmphasized && hover.isCancelled && notice.isCancelled && service.departures == 1,
+                     "entering fullscreen clears hover emphasis, pending reveals, banners, departing notices, drags and capture controls")
         suite.expect(BrightnessService.shared.syncs == brightnessSyncs + 1,
                      "entering fullscreen hands the brightness keys back to the system")
         service.updateFullscreenVisibility(displayID: 2)
         suite.expect(service.collapses == 1 && BrightnessService.shared.syncs == brightnessSyncs + 1,
                      "unchanged fullscreen state does not repeat dismissal or key routing")
         service.updateFullscreenVisibility(displayID: 1)
-        suite.expect(!service.hiddenInFullscreen && BrightnessService.shared.syncs == brightnessSyncs + 2,
-                     "moving to a desktop display restores eligibility and the island's brightness keys")
+        suite.expect(!service.hiddenInFullscreen && !service.hoverEmphasized
+                     && BrightnessService.shared.syncs == brightnessSyncs + 2,
+                     "returning to a desktop restores eligibility without retaining the old hover emphasis")
         service.updateFullscreenVisibility(displayID: 2)
         UserDefaults.standard.enabled = false
         service.updateFullscreenVisibility(displayID: 2)

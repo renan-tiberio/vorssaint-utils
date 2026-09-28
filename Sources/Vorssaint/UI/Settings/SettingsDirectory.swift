@@ -32,28 +32,128 @@ struct SettingsDirectoryItem: Identifiable {
 }
 
 /// The single map of the Settings window: sections, pages, icons and search
-/// keywords. The sidebar renders it; the command bar searches it. One list,
-/// so a page added here is findable everywhere at once.
+/// keywords. The sidebar draws its tool list from these pages; the command bar
+/// searches them. One list, so a page added here is findable everywhere.
 enum SettingsDirectory {
-    /// Destination-aware rows for focused Settings search. The regular
-    /// directory remains page-based so blank-query sidebar identity and
-    /// command-bar behavior do not change.
-    static func searchItems(_ s: Strings,
-                            language: AppLanguage) -> [SettingsSearchItem] {
-        let pageItems = sections(s, language: language).flatMap(\.items).map { item in
-            SettingsSearchItem(id: .page(item.page),
-                               destination: FeatureSettingsDestination(item.page),
-                               title: item.title,
-                               icon: item.icon,
-                               keywords: item.keywords,
-                               keywordFeatures: item.keywordFeatures)
+    /// Shared pages whose tools cover the page without a separate overview row.
+    private static let toolOnlyPages: Set<SettingsPage> = [
+        .energy, .mouse, .switcher, .dock, .cutPaste, .quickTools, .screenshot,
+    ]
+
+    /// Keep the directory's destinations, but show the most useful groups
+    /// first and separate everyday controls from the longer tool list.
+    static func sidebarSections(_ s: Strings,
+                                language: AppLanguage,
+                                superKeySource: SuperKeySource = SuperKeyService.shared.source,
+                                isAvailable: (AppFeature) -> Bool) -> [SettingsSidebarSection] {
+        let hub = FeatureStrings.hub(language)
+        let grouped: [SettingsSidebarSection] = sections(
+            s, language: language, superKeySource: superKeySource
+        ).enumerated().compactMap { index, section -> SettingsSidebarSection? in
+                let items = section.items.flatMap { pageItem -> [SettingsSidebarItem] in
+                    var rows = SettingsSidebarSupport.items(
+                        page: pageItem.page, title: pageItem.title, icon: pageItem.icon,
+                        preferredFeatures: pageItem.keywordFeatures.compactMap { $0 },
+                        includePage: !toolOnlyPages.contains(pageItem.page),
+                        isAvailable: isAvailable) { feature in
+                            if feature == .clipboardHistory {
+                                return FeatureStrings.commandBar(language).sourceClipboard
+                            }
+                            return feature.hubTitle(s, hub: hub)
+                        }
+                    if pageItem.page == .general {
+                        rows.insert(SettingsSidebarItem(
+                            id: .setting(.panelConfiguration),
+                            destination: FeatureSettingsDestination(
+                                .general, sectionAnchor: .panelConfiguration),
+                            title: s.menuBarSection, icon: "menubar.rectangle"), at: 1)
+                    }
+                    if pageItem.page == .shortcuts, isAvailable(.brightness),
+                       BrightnessService.keyboardLightIsSupported {
+                        let destination = FeatureSettingsDestination(
+                            .shortcuts, sectionAnchor: .keyboardBrightnessShortcuts)
+                        rows.append(SettingsSidebarItem(
+                            id: .setting(.keyboardBrightnessShortcuts), destination: destination,
+                            title: FeatureStrings.brightness(language).keyboardLight,
+                            icon: "keyboard"))
+                    }
+                    return rows
+                }
+                guard !items.isEmpty else { return nil }
+                return SettingsSidebarSection(id: index, title: section.title, items: items)
+            }
+        guard let essentials = grouped.first(where: { $0.id == 0 }) else { return grouped }
+        let categories = FeatureStrings.settingsCategories(language)
+        // Monitor keeps its tool rows, such as Fan Control, beside it.
+        let core = essentials.items.filter { item in
+            switch item.id {
+            case .page(.general), .page(.features),
+                 .setting(.panelConfiguration): return true
+            default: return item.destination.page == .monitor
+            }
         }
+        let island = grouped.first(where: { $0.id == 4 })?.items.filter {
+            $0.id == .page(.notch)
+        } ?? []
+        let sound: [SettingsSidebarItem] = essentials.items.filter { item in
+            item.destination.page == .general
+                && item.destination.sectionAnchor != nil
+                && item.destination.sectionAnchor != .panelConfiguration
+        }
+        let energy: [SettingsSidebarItem] = essentials.items.filter {
+            $0.destination.page == .energy
+        }
+        let featured = [
+            SettingsSidebarSection(id: 0, title: categories.essentials,
+                                   items: Array(core.prefix(3)) + island + Array(core.dropFirst(3))),
+            SettingsSidebarSection(id: 6, title: hub.groupSound, items: sound),
+            SettingsSidebarSection(id: 7, title: hub.groupEnergyDisplay, items: energy),
+        ]
+        let utilities = grouped.filter { $0.id == 4 }.map { section in
+            SettingsSidebarSection(id: section.id, title: section.title,
+                                   items: section.items.filter { $0.id != .page(.notch) })
+        }
+        let remaining = grouped.filter { $0.id != 0 && $0.id != 4 }
+        return [featured[0]] + utilities + featured.dropFirst().filter { !$0.items.isEmpty } + remaining
+    }
+
+    static func sidebarItems(_ s: Strings,
+                             language: AppLanguage,
+                             superKeySource: SuperKeySource = SuperKeyService.shared.source,
+                             isAvailable: (AppFeature) -> Bool) -> [SettingsSidebarItem] {
+        sidebarSections(s, language: language, superKeySource: superKeySource,
+                        isAvailable: isAvailable).flatMap(\.items)
+    }
+
+    /// Destination-aware rows for focused Settings and Command Bar search.
+    static func searchItems(_ s: Strings,
+                            language: AppLanguage,
+                            superKeySource: SuperKeySource = SuperKeyService.shared.source) -> [SettingsSearchItem] {
+        let pageItems = sections(s, language: language, superKeySource: superKeySource)
+            .flatMap(\.items).map { item in
+                SettingsSearchItem(id: .page(item.page),
+                                   destination: FeatureSettingsDestination(item.page),
+                                   title: item.title,
+                                   icon: item.icon,
+                                   keywords: item.keywords,
+                                   keywordFeatures: item.keywordFeatures)
+            }
         let hub = FeatureStrings.hub(language)
         let featureItems = SettingsSearchSupport.featureItems(language: language) { feature in
             feature.hubTitle(s, hub: hub)
         }
-        return SettingsSearchSupport.combinedItems(pageItems: pageItems,
-                                                   featureItems: featureItems)
+        var items = SettingsSearchSupport.combinedItems(pageItems: pageItems,
+                                                        featureItems: featureItems)
+        items.append(SettingsSearchItem(
+            id: .setting(.panelConfiguration),
+            destination: FeatureSettingsDestination(
+                .general, sectionAnchor: .panelConfiguration),
+            title: s.menuBarSection, icon: "menubar.rectangle",
+            keywords: [s.showMenuBarIcon]))
+        if BrightnessService.keyboardLightIsSupported {
+            items.append(SettingsSearchSupport.keyboardBrightnessShortcutItem(language: language))
+        }
+        return items
     }
 
     static func sections(_ s: Strings,
@@ -65,7 +165,7 @@ enum SettingsDirectory {
         return [
             (categories.essentials, [
                 SettingsDirectoryItem(page: .general, title: s.tabGeneral, icon: "gearshape",
-                                       keywords: [s.launchAtLogin, s.languageLabel, s.showMenuBarIcon,
+                                       keywords: [s.launchAtLogin, s.languageLabel,
                                                   FeatureStrings.appearance(language).label,
                                                   FeatureStrings.appearance(language).dark],
                                        featureKeywords: [
@@ -132,7 +232,8 @@ enum SettingsDirectory {
                                        ]),
                 SettingsDirectoryItem(page: .switcher, title: s.tabSwitcher, icon: "rectangle.on.rectangle",
                                        featureKeywords: [
-                                        (.switcher, [s.switcherEnable, s.switcherWindowlessApps,
+                                        (.switcher, [s.switcherEnable, s.switcherInstantSelection,
+                                                     s.switcherWindowlessApps,
                                                      s.switcherShowShortcutHints,
                                                      FeatureStrings.switcherAppRules(language).listTitle,
                                                      FeatureStrings.switcherAppRules(language)
@@ -192,6 +293,7 @@ enum SettingsDirectory {
                                                                 .autoClearOnScreenLock,
                                                              FeatureStrings.clipboardIgnoredApps(language)
                                                                 .listTitle]),
+                                        (.pastePlain, [s.pastePlainName]),
                                        ]),
                 SettingsDirectoryItem(page: .cutPaste,
                                        title: FeatureStrings.finderRename(language).pageTitle,

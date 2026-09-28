@@ -58,7 +58,11 @@ struct ScreenCaptureSettings: View {
     }
 
     private var toolSelection: Binding<ScreenCaptureTool> {
-        Binding(get: { currentTool }, set: { selectedTool = $0 })
+        Binding(get: { currentTool }, set: { tool in
+            guard availableTools.contains(tool), tool != currentTool else { return }
+            selectedTool = tool
+            router.request(tool.feature.settingsDestination, sidebarFeature: tool.feature)
+        })
     }
 
     @ViewBuilder
@@ -80,11 +84,15 @@ struct ScreenCaptureSettings: View {
     }
 
     private func reconcileSelection(withDestination: Bool) {
-        if withDestination,
-           let anchor = router.destination.sectionAnchor,
-           let requestedTool = anchor.screenCaptureTool,
-           availableTools.contains(requestedTool) {
-            selectedTool = requestedTool
+        if withDestination {
+            if let anchor = router.destination.sectionAnchor,
+               let requestedTool = anchor.screenCaptureTool,
+               availableTools.contains(requestedTool) {
+                selectedTool = requestedTool
+            } else if router.destination.sectionAnchor == nil,
+                      let first = availableTools.first {
+                selectedTool = first
+            }
             return
         }
         if !availableTools.contains(selectedTool), let first = availableTools.first {
@@ -196,7 +204,7 @@ private struct ScreenTextCaptureSettings: View {
         } header: {
             Text(l10n.s.ocrName)
         }
-        .settingsSectionAnchor(.screenOCR)
+        .settingsFormSectionAnchor(.screenOCR)
     }
 }
 
@@ -227,6 +235,6 @@ private struct ColorCaptureSettings: View {
         } header: {
             Text(l10n.s.colorPickerName)
         }
-        .settingsSectionAnchor(.colorPicker)
+        .settingsFormSectionAnchor(.colorPicker)
     }
 }

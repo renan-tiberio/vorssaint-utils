@@ -17,6 +17,8 @@ enum SettingsPage: Hashable {
 /// be added but never renamed.
 enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case panelConfiguration
+    case mixer
+    case audioPriority
     case musicBlocking
     case keepAwake
     case brightness
@@ -50,12 +52,15 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case scratchpad
     case cleaningMode
     case soundOutputSwitcher
+    case keyboardBrightnessShortcuts
     case fanControl
     case windowMaximizer
 
     var page: SettingsPage {
         switch self {
-        case .panelConfiguration, .musicBlocking: return .general
+        case .panelConfiguration, .mixer, .audioPriority, .musicBlocking,
+             .soundOutputSwitcher:
+            return .general
         case .keepAwake, .brightness, .extraBrightness, .bluetoothSleep: return .energy
         case .scrollDirection, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce:
@@ -68,7 +73,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
             return .quickTools
         case .screenshot, .screenRecorder, .colorPicker, .screenOCR:
             return .screenshot
-        case .soundOutputSwitcher: return .shortcuts
+        case .keyboardBrightnessShortcuts: return .shortcuts
         case .fanControl: return .monitor
         case .windowMaximizer: return .windowLayout
         }
@@ -109,20 +114,27 @@ struct SettingsFeatureTargetRequest: Equatable {
 final class SettingsRouter: ObservableObject {
     static let shared = SettingsRouter()
 
+    private struct HistoryEntry {
+        let destination: FeatureSettingsDestination
+        let sidebarFeature: AppFeature?
+    }
+
     @Published var page: SettingsPage = .general {
         didSet {
             guard page != oldValue else { return }
             destination = FeatureSettingsDestination(page)
+            sidebarFeature = nil
             pendingDestinationRequest = nil
             pendingFeatureTarget = nil
             if !isTraversingHistory {
                 history.removeSubrange((historyIndex + 1)..<history.count)
-                history.append(destination)
+                history.append(HistoryEntry(destination: destination, sidebarFeature: nil))
                 historyIndex += 1
             }
         }
     }
     @Published private(set) var destination = FeatureSettingsDestination(.general)
+    @Published private(set) var sidebarFeature: AppFeature?
     @Published private(set) var requestID = UUID()
     @Published private(set) var pendingDestinationRequest: SettingsDestinationRequest?
     /// One-shot hint for the Features hub: which feature row to reveal once
@@ -137,24 +149,45 @@ final class SettingsRouter: ObservableObject {
     /// can open its own options. Consumed and cleared on arrival.
     @Published var notchModule: NotchModule?
 
-    private var history = [FeatureSettingsDestination(.general)]
+    private var history = [HistoryEntry(destination: FeatureSettingsDestination(.general),
+                                        sidebarFeature: nil)]
     private var historyIndex = 0
     private var isTraversingHistory = false
 
     init() {}
 
-    func request(_ destination: FeatureSettingsDestination, targetFeature: AppFeature? = nil) {
+    /// `replacingVisit` swaps what the current visit shows without adding a
+    /// history entry, for a fallback when the visited tool went away.
+    func request(_ destination: FeatureSettingsDestination, targetFeature: AppFeature? = nil,
+                 sidebarFeature: AppFeature? = nil, replacingVisit: Bool = false) {
         let requestID = UUID()
+        let samePage = page == destination.page
         page = destination.page
         self.destination = destination
-        // Section requests refine the current page visit, not a new history entry.
-        history[historyIndex] = destination
+        self.sidebarFeature = sidebarFeature?.settingsDestination == destination ? sidebarFeature : nil
+        let entry = HistoryEntry(destination: destination, sidebarFeature: self.sidebarFeature)
+        // Section requests refine the current page visit, not a new history
+        // entry. General and Energy show one tool per anchor, so switching
+        // tools there is a visit of its own.
+        if samePage && !isTraversingHistory && !replacingVisit
+            && Self.anchorSelectsTool(on: destination.page)
+            && history[historyIndex].destination != destination {
+            history.removeSubrange((historyIndex + 1)..<history.count)
+            history.append(entry)
+            historyIndex += 1
+        } else {
+            history[historyIndex] = entry
+        }
         pendingDestinationRequest = SettingsDestinationRequest(id: requestID,
                                                                destination: destination)
         pendingFeatureTarget = targetFeature.map {
             SettingsFeatureTargetRequest(id: requestID, feature: $0)
         }
         self.requestID = requestID
+    }
+
+    private static func anchorSelectsTool(on page: SettingsPage) -> Bool {
+        page == .general || page == .energy
     }
 
     func goBack(isPageVisible: (SettingsPage) -> Bool = { _ in true }) {
@@ -179,14 +212,15 @@ final class SettingsRouter: ObservableObject {
         isTraversingHistory = true
         cleanerTool = nil
         notchModule = nil
-        request(history[index])
+        let entry = history[index]
+        request(entry.destination, sidebarFeature: entry.sidebarFeature)
         isTraversingHistory = false
     }
 
     private func historyTarget(step: Int, isPageVisible: (SettingsPage) -> Bool) -> Int? {
         var index = historyIndex + step
         while history.indices.contains(index) {
-            if isPageVisible(history[index].page) { return index }
+            if isPageVisible(history[index].destination.page) { return index }
             index += step
         }
         return nil
@@ -264,11 +298,11 @@ extension AppFeature {
         case .diskImageInstaller: return FeatureSettingsDestination(.features)
 
         case .mixer:
-            return FeatureSettingsDestination(.general, sectionAnchor: .panelConfiguration)
+            return FeatureSettingsDestination(.general, sectionAnchor: .mixer)
         case .soundOutputSwitcher:
-            return FeatureSettingsDestination(.shortcuts, sectionAnchor: .soundOutputSwitcher)
+            return FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
         case .audioPriority:
-            return FeatureSettingsDestination(.general, sectionAnchor: .panelConfiguration)
+            return FeatureSettingsDestination(.general, sectionAnchor: .audioPriority)
         case .micMute:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .micMute)
         case .musicBlock:

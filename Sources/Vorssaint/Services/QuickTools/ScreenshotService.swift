@@ -193,6 +193,7 @@ final class ScreenshotService: ObservableObject {
         // Repeating the same action finishes a long capture at the current
         // point. It can never open a second selection or capture task.
         if scrollingTask != nil {
+            QuickToolHUD.markScrollingCaptureFinishing()
             scrollingFinishSignal?.request()
             return
         }
@@ -657,6 +658,7 @@ final class ScreenshotService: ObservableObject {
         let (url, consumedNumber) = Self.saveDestination(strings: strings)
         do {
             try data.write(to: url, options: .atomic)
+            ScreenshotSupport.markAsScreenCapture(url)
             QuickToolHUD.show(icon: "camera.viewfinder",
                               message: String(format: strings.savedHUDFormat,
                                               url.deletingLastPathComponent().lastPathComponent))
@@ -681,6 +683,7 @@ final class ScreenshotService: ObservableObject {
         let (url, consumedNumber) = Self.saveDestination(strings: strings)
         do {
             try data.write(to: url, options: .atomic)
+            ScreenshotSupport.markAsScreenCapture(url)
         } catch {
             if let consumedNumber {
                 Self.rewindNumberSequence(toReuse: consumedNumber)

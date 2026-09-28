@@ -161,6 +161,12 @@ struct MixerRefreshCoordinator {
 }
 
 enum MixerRoutingSupport {
+    static func observationNeeds(isAvailable: (AppFeature) -> Bool)
+        -> (devices: Bool, processes: Bool) {
+        let mixer = isAvailable(.mixer)
+        return (mixer || isAvailable(.audioPriority) || isAvailable(.soundOutputSwitcher), mixer)
+    }
+
     static let systemDefaultSelectionID = "__system_default__"
     static let finderBundleIdentifier = "com.apple.finder"
 
@@ -357,10 +363,9 @@ enum MixerRoutingSupport {
     }
 
     enum EngineRenderVerdict: Equatable {
-        /// Remember this observation. With `recheckAfter` set the picture is
-        /// not conclusive yet (first look at this engine), so another look is
-        /// scheduled instead of waiting for the next audio event.
-        case note(EngineRenderObservation, recheckAfter: Double?)
+        /// Remember this observation and keep checking while the app plays.
+        /// A healthy engine can stall later without another audio event.
+        case note(EngineRenderObservation, recheckAfter: Double)
         /// The counter has not moved, but not for long enough to be sure;
         /// keep the previous observation and look again after the remaining
         /// time.
@@ -392,7 +397,7 @@ enum MixerRoutingSupport {
             return .note(EngineRenderObservation(cycles: cycles, at: now), recheckAfter: window)
         }
         guard cycles == previous.cycles else {
-            return .note(EngineRenderObservation(cycles: cycles, at: now), recheckAfter: nil)
+            return .note(EngineRenderObservation(cycles: cycles, at: now), recheckAfter: window)
         }
         let elapsed = max(0, now - previous.at)
         guard elapsed >= window else { return .stalled(recheckAfter: window - elapsed) }

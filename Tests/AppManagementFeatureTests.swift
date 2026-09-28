@@ -887,10 +887,15 @@ enum AppManagementFeatureTests {
                && !CleanerPolicy.isExcludedCacheEntry("ms-playwright"),
                "ordinary and downloadable sensitive caches remain available for review")
         suite.expect(CleanerSupport.Category.deviceBackups.rawValue == 6
-               && CleanerSupport.Category.allCases.count == 7,
-               "device backups joined the cleaner with a stable category id")
+               && CleanerSupport.Category.screenshots.rawValue == 7
+               && CleanerSupport.Category.allCases.count == 8,
+               "device backups and screenshots joined the cleaner with stable category ids")
         suite.expect(!CleanerPolicy.precheckDeviceBackups,
                "device backups never start checked, they are the user's safety net")
+        suite.expect(!CleanerPolicy.precheckScreenshots
+               && registeredDefaults[DefaultsKey.cleanerScreenshotAgeDays] as? Int == 30
+               && CleanerPolicy.sanitizedScreenshotAgeDays(-3) == 0,
+               "forgotten screenshots start unchecked after a 30 day default")
         // CleanerScheduler and CleanerView are outside this test binary, so
         // pin escalation at the call sites: the unattended pass must never
         // reach Finder's administrator prompt, and no default lets a later
@@ -909,6 +914,9 @@ enum AppManagementFeatureTests {
                && cleanerViewCode.components(separatedBy: "cleanSelected(").count == 2
                && cleanerViewCode.contains("cleanSelected(escalate:true)"),
                "cleanSelected has no default escalation and the manual clean still asks")
+        suite.expect(schedulerCode.contains("cleaner.scan(attended:false)")
+               && cleanerViewCode.contains("cleaner.scan(attended:true)"),
+               "only a scan someone started reads the screenshot folders")
         suite.expect(CleanerPolicy.developerJunkPaths.contains("/Library/Developer/Xcode/iOS DeviceSupport")
                && CleanerPolicy.developerJunkPaths.contains("/Library/Developer/Xcode/watchOS DeviceSupport"),
                "stale DeviceSupport symbol caches count as developer junk")
@@ -1104,6 +1112,23 @@ enum AppManagementFeatureTests {
         suite.expect(!AutoQuitSupport.hasDependentApplication(hostBundleIdentifier: "com.example.unrelated",
                                                         applicationBundleURLs: [dependentApp]),
                "AutoQuit does not protect an unrelated host")
+        func agentBundle(_ name: String, _ info: [String: Any]) -> URL {
+            let url = outerApp.deletingLastPathComponent().appendingPathComponent("\(name).app")
+            try? FileManager.default.createDirectory(at: url.appendingPathComponent("Contents"),
+                                                     withIntermediateDirectories: true)
+            NSDictionary(dictionary: info).write(to: url.appendingPathComponent("Contents/Info.plist"), atomically: true)
+            return url
+        }
+        suite.expect(AutoQuitSupport.isBackgroundApp(bundleURL: agentBundle("MenuBar", ["LSUIElement": true])),
+               "AutoQuit leaves a menu bar app running when its settings window closes")
+        suite.expect(AutoQuitSupport.isBackgroundApp(bundleURL: agentBundle("MenuBarString", ["LSUIElement": "1"])),
+               "AutoQuit reads a string LSUIElement the way Launch Services does")
+        suite.expect(AutoQuitSupport.isBackgroundApp(bundleURL: agentBundle("Daemon", ["LSBackgroundOnly": true])),
+               "AutoQuit leaves a background-only app running")
+        suite.expect(!AutoQuitSupport.isBackgroundApp(bundleURL: agentBundle("Regular", ["LSUIElement": false])),
+               "AutoQuit still quits a regular app when its last window closes")
+        suite.expect(!AutoQuitSupport.isBackgroundApp(bundleURL: nil),
+               "AutoQuit treats a process without a bundle as a regular app")
         try? FileManager.default.removeItem(at: outerApp.deletingLastPathComponent())
         suite.expect(!AutoQuitSupport.shouldScheduleWindowCheck(for: .appDeactivated,
                                                           hasRecentCloseRequest: false),
